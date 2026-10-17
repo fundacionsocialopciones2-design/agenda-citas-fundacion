@@ -1,0 +1,14 @@
+# Secretos y configuración local: nunca se suben
+.env
+.env.*
+!.env.example
+.secrets/
+*.pem
+*.key
+
+# Configuración local de herramientas
+.claude/settings.local.json
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

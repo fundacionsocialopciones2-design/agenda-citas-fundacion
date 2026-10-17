@@ -1,0 +1,361 @@
+@use '@angular/material' as mat;
+
+// Tema Material 3 base + colores de la Fundación Social Opciones (azul y amarillo del logo).
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$yellow-palette,
+      ),
+      typography: 'Nunito Sans',
+      density: 0,
+    )
+  );
+}
+
+:root {
+  --mat-sys-primary: #1f5aa6;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #e4edf9;
+  --mat-sys-on-primary-container: #0f3a70;
+  --mat-sys-secondary-container: #e4edf9;
+  --mat-sys-on-secondary-container: #0f3a70;
+  --mat-sys-surface: #ffffff;
+  --mat-sys-background: #f6f8fb;
+  --mat-sys-on-surface: #1b2a41;
+  --mat-sys-on-surface-variant: #4b5b70;
+  --mat-sys-outline: #8795a8;
+  --mat-sys-outline-variant: #d9e0ea;
+  --mat-sys-error: #a32b20;
+
+  --app-acento: #f2b01e;
+  --app-fondo: #f6f8fb;
+  --app-borde: #d9e0ea;
+  --app-texto: #1b2a41;
+  --app-suave: #4b5b70;
+  --app-radio: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--app-fondo);
+  color: var(--app-texto);
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 3px solid #1f5aa6;
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0;
+}
+h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+}
+
+// ---------- Estructura de página ----------
+.pagina {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.pagina-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pagina-cabecera p {
+  margin: 4px 0 0;
+  color: var(--app-suave);
+}
+.tarjeta {
+  background: #fff;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 20px;
+}
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+.fila > * {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+// ---------- Tablas que se apilan en móvil ----------
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  overflow: hidden;
+}
+.tabla caption {
+  text-align: left;
+  padding: 0 0 8px;
+  color: var(--app-suave);
+  font-size: 0.9rem;
+}
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--app-borde);
+  vertical-align: middle;
+}
+.tabla th {
+  background: #eef3f9;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--app-suave);
+}
+.tabla tr:last-child td {
+  border-bottom: 0;
+}
+.tabla .inactivo {
+  color: var(--app-suave);
+}
+
+@media (max-width: 720px) {
+  .tabla,
+  .tabla tbody,
+  .tabla tr,
+  .tabla td {
+    display: block;
+    width: 100%;
+  }
+  .tabla thead {
+    position: absolute;
+    left: -9999px;
+  }
+  .tabla {
+    border: 0;
+    background: transparent;
+  }
+  .tabla tr {
+    background: #fff;
+    border: 1px solid var(--app-borde);
+    border-radius: var(--app-radio);
+    margin-bottom: 12px;
+    padding: 6px 0;
+  }
+  .tabla td {
+    border: 0;
+    padding: 6px 14px;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  .tabla td::before {
+    content: attr(data-etiqueta);
+    font-weight: 700;
+    color: var(--app-suave);
+    flex: 0 0 38%;
+  }
+}
+
+// ---------- Chips de estado ----------
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chip--confirmada,
+.chip--activo {
+  background: #e2f4ea;
+  color: #14603f;
+}
+.chip--cancelada,
+.chip--inactivo {
+  background: #fbe5e2;
+  color: #8f2419;
+}
+.chip--asistida {
+  background: #e4edf9;
+  color: #0f3a70;
+}
+.chip--no_asistio {
+  background: #edf0f4;
+  color: #3f4a5a;
+}
+
+// ---------- Estados: carga, vacío, error, conflicto ----------
+.estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 40px 16px;
+  background: #fff;
+  border: 1px dashed var(--app-borde);
+  border-radius: var(--app-radio);
+  color: var(--app-suave);
+}
+.estado .material-symbols-outlined {
+  font-size: 40px;
+}
+.estado--error {
+  border-style: solid;
+  border-color: #e7b6b0;
+  background: #fdf3f2;
+  color: #8f2419;
+}
+.aviso {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff4d6;
+  color: #5b4300;
+  border: 1px solid #f0d58a;
+}
+.aviso--error {
+  background: #fdf3f2;
+  color: #8f2419;
+  border-color: #e7b6b0;
+}
+.aviso ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.solo-lectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+// ---------- FullCalendar ----------
+full-calendar {
+  display: block;
+  background: #fff;
+  border: 1px solid var(--app-borde);
+  border-radius: var(--app-radio);
+  padding: 8px;
+  min-height: 560px;
+}
+
+mat-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// ---------- Campos de formulario (controles nativos, accesibles) ----------
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+.campo > label,
+.campo > .etiqueta {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.campo input:not([type='checkbox']),
+.campo select,
+.campo textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--app-texto);
+  background: #fff;
+  border: 1px solid var(--mat-sys-outline);
+  border-radius: 10px;
+}
+.campo textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+.campo input:focus-visible,
+.campo select:focus-visible,
+.campo textarea:focus-visible {
+  outline: 3px solid #1f5aa6;
+  outline-offset: 1px;
+  border-color: #1f5aa6;
+}
+.campo input[aria-invalid='true'],
+.campo select[aria-invalid='true'] {
+  border: 2px solid #a32b20;
+}
+.campo .ayuda {
+  font-size: 0.85rem;
+  color: var(--app-suave);
+}
+.campo .error {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a32b20;
+}
+.campo--check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+.campo--check input {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+.campo--check label {
+  font-weight: 400;
+}
