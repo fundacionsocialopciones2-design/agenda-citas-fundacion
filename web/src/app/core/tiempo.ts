@@ -6,6 +6,14 @@ const fmtFecha = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, weekday: 'sh
 const fmtHora = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, hour: '2-digit', minute: '2-digit', hour12: false });
 const fmtIsoFecha = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit' });
 
+const fmtFechaLarga = new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** Ej.: «Sábado 31 de octubre de 2026». */
+export const fechaLargaBogota = (iso: string): string => {
+  const texto = fmtFechaLarga.format(new Date(iso));
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+};
+
 export const fechaHoraBogota = (iso: string): string => fmtFechaHora.format(new Date(iso));
 export const fechaBogota = (iso: string): string => fmtFecha.format(new Date(iso));
 export const horaBogota = (iso: string): string => fmtHora.format(new Date(iso));
