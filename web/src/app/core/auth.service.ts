@@ -15,6 +15,9 @@ export class AuthService {
   readonly perfil = signal<Perfil | null>(null);
   readonly especialistaId = signal<string | null>(null);
   readonly enRecuperacion = signal(false);
+  /** Aumenta cada vez que la sesión se pierde sin que esta pestaña lo pidiera (otra pestaña cerró sesión, expiró, etc.). */
+  readonly sesionPerdida = signal(0);
+  private cierreSolicitado = false;
 
   readonly rol = computed(() => this.perfil()?.role ?? null);
   readonly autenticado = computed(() => this.sesion() !== null && this.perfil()?.active === true);
@@ -43,6 +46,7 @@ export class AuthService {
 
   private async cargarSesion(sesion: Session | null): Promise<void> {
     if (!sesion) {
+      if (this.sesion() !== null && !this.cierreSolicitado) this.sesionPerdida.update((n) => n + 1);
       this.sesion.set(null);
       this.perfil.set(null);
       this.especialistaId.set(null);
@@ -79,10 +83,20 @@ export class AuthService {
     return null;
   }
 
+  /** Cierra la sesión de ESTE navegador (scope local): no cierra las sesiones del usuario en otros dispositivos. */
   async cerrarSesion(): Promise<void> {
-    await this.sb.auth.signOut();
-    await this.aplicarSesion(null);
-    this.enRecuperacion.set(false);
+    this.cierreSolicitado = true;
+    try {
+      try {
+        await this.sb.auth.signOut({ scope: 'local' });
+      } catch {
+        // Sin red o con error del servidor: igual se limpia el estado local para no dejar la sesión abierta en pantalla.
+      }
+      await this.aplicarSesion(null);
+      this.enRecuperacion.set(false);
+    } finally {
+      this.cierreSolicitado = false;
+    }
   }
 
   /** Siempre responde igual para no revelar qué correos existen. */

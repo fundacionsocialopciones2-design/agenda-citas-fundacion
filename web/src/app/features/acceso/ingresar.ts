@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { email, form, FormField, FormRoot, required, submit } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,12 @@ import { Acceso } from '../../shared/acceso';
   template: `
     <app-acceso titulo="Iniciar sesión" subtitulo="Acceso para administración y especialistas.">
       <form [formRoot]="formulario" (submit)="ingresar()">
+        @if (avisoMotivo(); as aviso) {
+          <div class="aviso" role="status">
+            <mat-icon aria-hidden="true">lock_clock</mat-icon>
+            <span>{{ aviso }}</span>
+          </div>
+        }
         @if (error()) {
           <div class="aviso aviso--error" role="alert">
             <mat-icon aria-hidden="true">error</mat-icon>
@@ -65,6 +71,19 @@ export class Ingresar {
     required(c.correo, { message: 'Escribe tu correo electrónico.' });
     email(c.correo, { message: 'El correo no tiene un formato válido.' });
     required(c.clave, { message: 'Escribe tu contraseña.' });
+  });
+
+  /** Llega por la URL (?motivo=inactividad|sesion) gracias a withComponentInputBinding. */
+  readonly motivo = input<string>();
+  protected readonly avisoMotivo = computed(() => {
+    switch (this.motivo()) {
+      case 'inactividad':
+        return 'Tu sesión se cerró por inactividad. Inicia sesión de nuevo para continuar.';
+      case 'sesion':
+        return 'Tu sesión terminó. Inicia sesión de nuevo para continuar.';
+      default:
+        return null;
+    }
   });
 
   protected readonly error = signal<string | null>(null);
