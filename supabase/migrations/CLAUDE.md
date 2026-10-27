@@ -1,0 +1,7 @@
+# `supabase/migrations/`
+
+- Files are numbered `YYYYMMDD…NN_name.sql` in the order they were applied. Each change = write the file **and** apply the identical SQL with the MCP `apply_migration` (name in snake_case). Supabase stamps its own timestamps (`20261017…`), so the version numbers in Supabase's migration list do not match the file names; the files are the source of truth.
+- Applied by hand in the SQL Editor (so missing from Supabase's history): 08 (the `alter table` confirmation was declined) and 12 (`drop table`). Seeds and fixes are separate migrations (06 data, 07 fix); do not rewrite an applied migration to change behavior; add a new one (the one past exception, `profiles_guard` returning `coalesce(new, old)`, was edited in file 05 to match what is deployed).
+- Prefer idempotent data migrations (`insert … where not exists`), as in 13/14. Never put patient data or secrets in a migration.
+- 09–12 modify the `bot_*` engine and **assume those objects already exist** (they are not created by any migration), so the database cannot be rebuilt from scratch from this folder alone. The previous function definitions are in `../backups/` and a table structure (no data) is kept there for `bot_solicitudes_cita`.
+- Schedules and specialists from the foundation's service table are loaded in 13–14 (new specialties; specialists without login; Dr. Darío Campos keeps his Saturday slot until the future appointment on it is resolved).
