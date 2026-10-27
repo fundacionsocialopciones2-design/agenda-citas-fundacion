@@ -1,0 +1,8 @@
+# `core/` — data access, errors, time
+
+- `supabase.service.ts` creates the single Supabase client with the **publishable** key only. Authorization is enforced by RLS/RPCs on the server; nothing here is a security boundary.
+- `agenda.api.ts` is the **only** place that talks to Supabase for data. Add new RPC/table access here, following its helpers: `datos()` unwraps `{data, error}` and throws via `falla()`; `verificar()` turns an RPC result `{ok:false, code}` into `ErrorApi` with the Spanish text from `MENSAJES_AGENDA` (`errores.ts`).
+- Error mapping to keep consistent: PostgREST code `AG409` → `ErrorConflicto(citaIds)` (ids come from the error `details`, comma-separated); `42501` → "forbidden"; Edge Function errors are parsed from the `FunctionsHttpError` body (`code`, `message`, `cita_ids`). Screens catch `ErrorConflicto` and open the conflicts dialog instead of showing a generic error.
+- `tiempo.ts`: **all** date formatting/conversion goes through it, pinned to America/Bogota (fixed UTC-5, no DST). Date inputs are `YYYY-MM-DD` + `HH:mm` strings converted with `bogotaAIso`; never use the browser's local timezone or format dates elsewhere.
+- `models.ts` holds domain types and label maps (`ETIQUETA_ESTADO`, `DIAS_SEMANA` with ISO weekdays 1–7). Statuses: `confirmada` (only one that occupies the agenda), `cancelada`, `asistida`, `no_asistio`.
+- `proximas-citas.ts`: pure functions (filter + order upcoming appointments, "Hoy/Mañana" label) with a spec; keep logic like this out of components so it stays testable.
