@@ -2,10 +2,10 @@ import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
-import { AgendaApi } from '../core/agenda.api';
-import { ErrorConflicto } from '../core/errores';
-import { Cita } from '../core/models';
-import { fechaHoraBogota } from '../core/tiempo';
+import { AgendaApi } from '../../core/agenda.api';
+import { ErrorConflicto } from '../../core/errores';
+import { Cita } from '../../core/models';
+import { fechaHoraBogota } from '../../core/tiempo';
 
 export interface DatosConflictos {
   contexto: string;

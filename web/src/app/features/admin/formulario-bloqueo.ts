@@ -5,8 +5,8 @@ import { AgendaApi } from '../../core/agenda.api';
 import { ErrorConflicto, mensajeDeError } from '../../core/errores';
 import { Bloqueo, ETIQUETA_BLOQUEO, TipoBloqueo } from '../../core/models';
 import { bogotaAIso, diaBogota, horaBogota, hoyBogota, sumarDias } from '../../core/tiempo';
-import { mostrarConflictos } from '../../shared/conflictos';
-import { marcadoDe, valorDe } from '../../shared/util';
+import { mostrarConflictos } from './conflictos';
+import { marcadoDe, valorDe } from '../../shared/eventos-formulario';
 
 export interface DatosFormularioBloqueo {
   specialistId: string;

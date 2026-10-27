@@ -3,8 +3,8 @@ import { email, form, FormField, FormRoot, required, submit } from '@angular/for
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '../../core/auth.service';
-import { Acceso } from '../../shared/acceso';
+import { AuthService } from '../../core/auth/auth.service';
+import { Acceso } from './acceso';
 
 @Component({
   selector: 'app-ingresar',

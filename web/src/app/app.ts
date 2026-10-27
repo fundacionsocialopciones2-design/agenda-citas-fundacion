@@ -1,7 +1,7 @@
 import { Component, effect, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
-import { AuthService } from './core/auth.service';
-import { InactividadService } from './core/inactividad.service';
+import { AuthService } from './core/auth/auth.service';
+import { InactividadService } from './core/inactividad/inactividad.service';
 
 @Component({
   selector: 'app-root',

@@ -4,8 +4,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { environment } from '../../environments/environment';
-import { AuthService } from './auth.service';
+import { environment } from '../../../environments/environment';
+import { AuthService } from '../auth/auth.service';
 import { CLAVE_ULTIMA_ACTIVIDAD, InactividadService } from './inactividad.service';
 
 const LIMITE = environment.inactividad.limiteMinutos * 60_000;

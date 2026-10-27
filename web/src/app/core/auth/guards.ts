@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
-import { Rol } from './models';
+import { Rol } from '../models';
 
 // Los guards solo mejoran la experiencia; no sustituyen la autorización del servidor (RLS y RPC).
 

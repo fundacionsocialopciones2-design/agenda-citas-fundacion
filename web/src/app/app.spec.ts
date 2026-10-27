@@ -3,8 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
-import { AuthService } from './core/auth.service';
-import { InactividadService } from './core/inactividad.service';
+import { AuthService } from './core/auth/auth.service';
+import { InactividadService } from './core/inactividad/inactividad.service';
 
 describe('App', () => {
   const sesionPerdida = signal(0);

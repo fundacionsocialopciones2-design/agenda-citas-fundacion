@@ -2,9 +2,9 @@ import { DOCUMENT } from '@angular/common';
 import { effect, inject, Service, signal, untracked } from '@angular/core';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { environment } from '../../environments/environment';
-import { AvisoInactividad, DatosAvisoInactividad, RespuestaAvisoInactividad } from '../shared/aviso-inactividad';
-import { AuthService } from './auth.service';
+import { environment } from '../../../environments/environment';
+import { AvisoInactividad, DatosAvisoInactividad, RespuestaAvisoInactividad } from './aviso-inactividad';
+import { AuthService } from '../auth/auth.service';
 
 /** Clave compartida entre pestañas: solo guarda un número (marca de tiempo), nunca datos personales. */
 export const CLAVE_ULTIMA_ACTIVIDAD = 'agenda-citas:ultima-actividad';

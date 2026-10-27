@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { marcaRelativa, proximasCitas } from './citas.util';
+import { marcaRelativa, proximasCitas } from './proximas-citas';
 import { CitaEspecialista, EstadoCita } from './models';
 
 const AHORA = new Date('2026-10-21T15:00:00Z');

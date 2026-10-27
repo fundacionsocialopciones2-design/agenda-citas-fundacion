@@ -3,8 +3,8 @@ import { form, FormField, FormRoot, minLength, required, submit } from '@angular
 import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '../../core/auth.service';
-import { Acceso } from '../../shared/acceso';
+import { AuthService } from '../../core/auth/auth.service';
+import { Acceso } from './acceso';
 import { Estado } from '../../shared/estado';
 
 /** Destino de los enlaces de recuperación e invitación: la sesión temporal permite fijar la contraseña. */

@@ -1,7 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import type { Session } from '@supabase/supabase-js';
-import { Perfil } from './models';
-import { SupabaseService } from './supabase.service';
+import { Perfil } from '../models';
+import { SupabaseService } from '../supabase.service';
 
 /**
  * Estado de sesión. Es solo para la interfaz: la autorización real la aplican RLS y las funciones del servidor.

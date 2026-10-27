@@ -3,7 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { AgendaApi } from '../../core/agenda.api';
-import { marcaRelativa, proximasCitas } from '../../core/citas.util';
+import { marcaRelativa, proximasCitas } from '../../core/proximas-citas';
 import { mensajeDeError } from '../../core/errores';
 import { CitaEspecialista } from '../../core/models';
 import { bogotaAIso, diaBogota, fechaLargaBogota, horaBogota, hoyBogota, sumarDias } from '../../core/tiempo';

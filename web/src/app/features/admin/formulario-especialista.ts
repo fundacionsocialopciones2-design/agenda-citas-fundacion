@@ -4,7 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
 import { Especialidad, Especialista } from '../../core/models';
-import { marcadoDe, valorDe } from '../../shared/util';
+import { marcadoDe, valorDe } from '../../shared/eventos-formulario';
 
 export interface DatosFormularioEspecialista {
   especialidades: Especialidad[];

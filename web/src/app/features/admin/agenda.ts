@@ -8,8 +8,10 @@ import { mensajeDeError } from '../../core/errores';
 import { Cita, Especialidad, Especialista, ETIQUETA_ESTADO, EstadoCita, FiltrosCitas } from '../../core/models';
 import { fechaBogota, hoyBogota, horaBogota, sumarDias } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
-import { valorDe } from '../../shared/util';
-import { CancelarCita, NuevaCita, ReprogramarCita } from './dialogos-cita';
+import { valorDe } from '../../shared/eventos-formulario';
+import { CancelarCita } from './cancelar-cita';
+import { NuevaCita } from './nueva-cita';
+import { ReprogramarCita } from './reprogramar-cita';
 
 @Component({
   selector: 'app-agenda-admin',

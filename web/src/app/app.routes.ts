@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { conRol, irAlInicio, soloInvitados } from './core/guards';
+import { conRol, irAlInicio, soloInvitados } from './core/auth/guards';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', canActivate: [irAlInicio], children: [] },
@@ -22,7 +22,7 @@ export const routes: Routes = [
   {
     path: 'admin',
     canActivate: [conRol('admin')],
-    loadComponent: () => import('./shared/marco').then((m) => m.Marco),
+    loadComponent: () => import('./layout/marco').then((m) => m.Marco),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'agenda' },
       { path: 'agenda', title: 'Agenda · Agenda de citas', loadComponent: () => import('./features/admin/agenda').then((m) => m.AgendaAdmin) },
@@ -33,7 +33,7 @@ export const routes: Routes = [
   {
     path: 'mi-agenda',
     canActivate: [conRol('especialista')],
-    loadComponent: () => import('./shared/marco').then((m) => m.Marco),
+    loadComponent: () => import('./layout/marco').then((m) => m.Marco),
     children: [{ path: '', title: 'Mi agenda · Agenda de citas', loadComponent: () => import('./features/especialista/mi-agenda').then((m) => m.MiAgenda) }],
   },
   { path: '**', redirectTo: '' },

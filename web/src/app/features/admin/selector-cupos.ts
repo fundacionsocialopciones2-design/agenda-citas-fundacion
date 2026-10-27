@@ -1,10 +1,10 @@
 import { Component, effect, inject, input, output, signal, untracked, computed } from '@angular/core';
-import { AgendaApi } from '../core/agenda.api';
-import { mensajeDeError } from '../core/errores';
-import { Cupo } from '../core/models';
-import { diaBogota, fechaBogota, horaBogota, hoyBogota, sumarDias } from '../core/tiempo';
-import { Estado } from './estado';
-import { valorDe } from './util';
+import { AgendaApi } from '../../core/agenda.api';
+import { mensajeDeError } from '../../core/errores';
+import { Cupo } from '../../core/models';
+import { diaBogota, fechaBogota, horaBogota, hoyBogota, sumarDias } from '../../core/tiempo';
+import { Estado } from '../../shared/estado';
+import { valorDe } from '../../shared/eventos-formulario';
 
 const DIAS_VENTANA = 14;
 

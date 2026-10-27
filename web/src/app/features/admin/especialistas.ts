@@ -4,11 +4,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AgendaApi } from '../../core/agenda.api';
-import { AuthService } from '../../core/auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 import { ErrorConflicto, mensajeDeError } from '../../core/errores';
 import { Especialidad, Especialista } from '../../core/models';
 import { Confirmar, DatosConfirmar } from '../../shared/confirmar';
-import { mostrarConflictos } from '../../shared/conflictos';
+import { mostrarConflictos } from './conflictos';
 import { Estado } from '../../shared/estado';
 import { FormularioEspecialista } from './formulario-especialista';
 

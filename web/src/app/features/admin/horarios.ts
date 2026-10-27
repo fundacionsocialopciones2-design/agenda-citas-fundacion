@@ -8,9 +8,9 @@ import { ErrorConflicto, mensajeDeError } from '../../core/errores';
 import { Bloqueo, DIAS_SEMANA, ETIQUETA_BLOQUEO, Especialista, HorarioSemanal } from '../../core/models';
 import { fechaHoraBogota, horaCorta } from '../../core/tiempo';
 import { Confirmar } from '../../shared/confirmar';
-import { mostrarConflictos } from '../../shared/conflictos';
+import { mostrarConflictos } from './conflictos';
 import { Estado } from '../../shared/estado';
-import { valorDe } from '../../shared/util';
+import { valorDe } from '../../shared/eventos-formulario';
 import { FormularioBloqueo } from './formulario-bloqueo';
 
 interface Rango {
