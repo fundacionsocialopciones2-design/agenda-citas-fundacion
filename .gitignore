@@ -6,6 +6,21 @@
 *.pem
 *.key
 
+# Exportaciones de n8n: suelen traer claves escritas dentro de los nodos
+Chatbot*.json
+*workflow*.json
+n8n/
+
+# Credenciales y respaldos con datos (nunca se suben)
+credenciales*
+*.dump
+*.backup
+
+# Archivos temporales de la CLI de Supabase y registros
+supabase/.temp/
+supabase/.branches/
+*.log
+
 # Configuración local de herramientas
 .claude/settings.local.json
 

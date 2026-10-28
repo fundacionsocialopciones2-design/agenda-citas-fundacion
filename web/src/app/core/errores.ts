@@ -1,8 +1,11 @@
+/**
+ * Error de la API con un mensaje ya apto para mostrar. Nunca guarda el texto crudo de Postgres/PostgREST:
+ * podría incluir datos de un paciente (por ejemplo, el documento en un error de duplicado).
+ */
 export class ErrorApi extends Error {
   constructor(
     readonly codigo: string,
     mensaje: string,
-    readonly detalle?: string,
   ) {
     super(mensaje);
   }
@@ -33,8 +36,9 @@ export const MENSAJES_AGENDA: Record<string, string> = {
   invalid_status: 'Estado no válido.',
 };
 
+export const MENSAJE_ERROR_GENERICO = 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+
+/** Solo los `ErrorApi` traen un mensaje curado; cualquier otro error (red, librerías, bugs) muestra un texto fijo. */
 export function mensajeDeError(e: unknown): string {
-  if (e instanceof ErrorApi) return e.message;
-  if (e instanceof Error && e.message) return e.message;
-  return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+  return e instanceof ErrorApi ? e.message : MENSAJE_ERROR_GENERICO;
 }

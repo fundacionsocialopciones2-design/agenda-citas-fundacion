@@ -36,7 +36,7 @@ export class AgendaApi {
   private falla(e: PostgrestError): never {
     if (e.code === 'AG409') throw new ErrorConflicto((e.details ?? '').split(',').map((s) => s.trim()).filter(Boolean));
     if (e.code === '42501') throw new ErrorApi('forbidden', 'No tienes permiso para realizar esta acción.');
-    throw new ErrorApi(e.code, 'No se pudo completar la operación. Inténtalo de nuevo.', e.message);
+    throw new ErrorApi(e.code, 'No se pudo completar la operación. Inténtalo de nuevo.'); // sin e.message: puede traer datos del paciente
   }
 
   private datos<T>(r: { data: T | null; error: PostgrestError | null }): T {
