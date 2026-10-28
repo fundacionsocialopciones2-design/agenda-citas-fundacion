@@ -1,6 +1,8 @@
 # `features/especialista/` — specialist calendar (FullCalendar 7)
 
-Route `/mi-agenda`. Read-only: specialists see only their own appointments through `my_agenda` (minimal patient data: name and document, no phone). Cancelled appointments are hidden.
+Route `/mi-agenda`. Specialists see only their own appointments through `my_agenda` (minimal patient data: name and document, plus the contact **phone on every one of their own appointments**; migrations 16–17, the user's decision). The detail dialog shows the phone as a `tel:` link ("No registrado" if the patient has none). The list view does not show the phone. Cancelled appointments are hidden.
+
+**Actions on their own appointments only** (migration 18, the user's decision): the detail dialog (`detalle-cita.ts`) offers «Asistió»/«No asistió» once the appointment has started (confirmed ones; asks for confirmation because it is irreversible) and «Cancelar cita» (`cancelar-cita-propia.ts`, optional reason) only before it starts. These call `AgendaApi.registrarAsistenciaPropia` / `cancelarCitaPropia` → RPC `my_set_attendance` / `my_cancel_appointment`. The buttons are presentation only: the database re-checks ownership (a foreign id returns `not_found`) and the time rules. The dialog closes with `'actualizada'` and the caller (`mi-agenda.ts`, `lista-citas.ts`) reloads. The patient gets **no automatic notice** on cancel (the dialog says so). In specs, `MatDialogModule` re-provides `MatDialog`, so mock it with `TestBed.overrideComponent(..., { add: { providers } })`.
 
 ## FullCalendar 7 quirks
 

@@ -77,6 +77,8 @@ export interface CitaEspecialista {
   patient_last_names: string;
   patient_document_type: TipoDocumento;
   patient_document_number: string;
+  /** Teléfono de contacto del paciente (solo de las citas del propio especialista); null si no tiene registrado. */
+  patient_phone: string | null;
 }
 
 export interface Cupo {

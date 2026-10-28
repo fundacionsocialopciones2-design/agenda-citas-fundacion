@@ -19,6 +19,7 @@ function cita(id: string, nombre: string, desdeAhoraMs: number, status: CitaEspe
     patient_last_names: 'Prueba',
     patient_document_type: 'CC',
     patient_document_number: '1000000001',
+    patient_phone: null,
   };
 }
 

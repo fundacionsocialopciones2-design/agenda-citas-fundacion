@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { firstValueFrom } from 'rxjs';
 import { AgendaApi } from '../../core/agenda.api';
 import { marcaRelativa, proximasCitas } from '../../core/proximas-citas';
 import { mensajeDeError } from '../../core/errores';
@@ -156,7 +157,8 @@ export class ListaCitas {
     }
   }
 
-  protected ver(c: CitaEspecialista): void {
-    this.dialog.open(DetalleCita, { data: aDetalle(c), width: '420px' });
+  protected async ver(c: CitaEspecialista): Promise<void> {
+    const resultado = await firstValueFrom(this.dialog.open(DetalleCita, { data: aDetalle(c), width: '420px' }).afterClosed());
+    if (resultado === 'actualizada') await this.cargar(); // la cita cambió: se vuelve a pedir la lista
   }
 }

@@ -217,7 +217,15 @@ export class AgendaApi {
     this.verificar(this.datos(await this.sb.rpc('admin_set_attendance', { p_appointment_id: id, p_status: estado })) as RespuestaRpc);
   }
 
-  // ---------- Especialista ----------
+  // ---------- Especialista (solo sobre sus propias citas; lo exige la base de datos) ----------
+  async registrarAsistenciaPropia(id: string, estado: Extract<EstadoCita, 'asistida' | 'no_asistio'>): Promise<void> {
+    this.verificar(this.datos(await this.sb.rpc('my_set_attendance', { p_appointment_id: id, p_status: estado })) as RespuestaRpc);
+  }
+
+  async cancelarCitaPropia(id: string, motivo: string): Promise<void> {
+    this.verificar(this.datos(await this.sb.rpc('my_cancel_appointment', { p_appointment_id: id, p_reason: motivo.trim() || null })) as RespuestaRpc);
+  }
+
   async miAgenda(desdeIso: string, hastaIso: string): Promise<CitaEspecialista[]> {
     return this.datos(await this.sb.rpc('my_agenda', { p_from: desdeIso, p_to: hastaIso })) as CitaEspecialista[];
   }

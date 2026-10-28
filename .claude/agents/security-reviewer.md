@@ -70,8 +70,8 @@ Qué revisar
 
 Decisiones ya tomadas (no las reportes como hallazgo)
 - La clave publishable en el repositorio y el aviso del linter "authenticated puede
-  ejecutar SECURITY DEFINER" en admin_*, my_agenda e is_admin (cada función verifica
-  el rol por dentro).
+  ejecutar SECURITY DEFINER" en admin_*, my_*  e is_admin (cada función verifica
+  el rol por dentro; my_set_attendance y my_cancel_appointment además exigen que la cita sea del propio especialista).
 - Las tablas bot_* con RLS activo y sin políticas (solo las usa service_role).
 - El AG409 devuelve ids de citas al administrador (es intencional).
 Si crees que alguna ya no se sostiene, dilo como observación aparte, no como hallazgo.

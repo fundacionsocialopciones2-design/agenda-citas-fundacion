@@ -9,6 +9,7 @@ import { FullCalendarComponent, FullCalendarModule } from '@fullcalendar/angular
 import dayGridPlugin from '@fullcalendar/angular/daygrid';
 import monarch from '@fullcalendar/angular/themes/monarch';
 import timeGridPlugin from '@fullcalendar/angular/timegrid';
+import { firstValueFrom } from 'rxjs';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
 import { EstadoCita } from '../../core/models';
@@ -29,7 +30,7 @@ const capitalizar = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1
       <div class="pagina-cabecera">
         <div>
           <h1>Mi agenda</h1>
-          <p>Tus citas confirmadas. Horas de Colombia. Solo consulta: los cambios los realiza la administración.</p>
+          <p>Tus citas. Horas de Colombia. Abre una cita para registrar la asistencia o cancelarla; solo puedes hacerlo con tus propios pacientes.</p>
         </div>
         <div class="vistas" role="group" aria-label="Vista del calendario">
           @for (v of vistas; track v.id) {
@@ -219,7 +220,7 @@ export class MiAgenda {
     dayMaxEvents: 3,
     fixedWeekCount: false,
     height: 'auto',
-    eventClick: (info) => this.verDetalle(info.event.extendedProps as DatosDetalle),
+    eventClick: (info) => void this.verDetalle(info.event.extendedProps as DatosDetalle),
   };
 
   /** Carga las citas del rango visible desde my_agenda (el servidor limita a las del propio especialista). */
@@ -267,7 +268,8 @@ export class MiAgenda {
     this.calendario()?.getApi().refetchEvents();
   }
 
-  private verDetalle(datos: DatosDetalle): void {
-    this.dialog.open(DetalleCita, { data: datos, width: '420px' });
+  private async verDetalle(datos: DatosDetalle): Promise<void> {
+    const resultado = await firstValueFrom(this.dialog.open(DetalleCita, { data: datos, width: '420px' }).afterClosed());
+    if (resultado === 'actualizada') this.recargar(); // la cita cambió: se vuelve a pedir al servidor
   }
 }

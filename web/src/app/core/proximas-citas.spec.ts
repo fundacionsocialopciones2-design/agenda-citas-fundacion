@@ -15,6 +15,7 @@ function cita(id: string, inicio: string, fin: string, status: EstadoCita = 'con
     patient_last_names: id,
     patient_document_type: 'CC',
     patient_document_number: '1000000000',
+    patient_phone: null,
   };
 }
 
