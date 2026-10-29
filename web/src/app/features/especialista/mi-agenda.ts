@@ -12,13 +12,12 @@ import timeGridPlugin from '@fullcalendar/angular/timegrid';
 import { firstValueFrom } from 'rxjs';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
-import { EstadoCita } from '../../core/models';
+import { COLOR_ESTADO } from '../../core/models';
 import { aDetalle, DatosDetalle, DetalleCita } from './detalle-cita';
 import { ListaCitas } from './lista-citas';
 
 type Vista = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'lista';
 
-const COLOR: Record<EstadoCita, string> = { confirmada: '#1f5aa6', asistida: '#14603f', no_asistio: '#5b6676', cancelada: '#8f2419' };
 const HORA_24 = { hour: '2-digit', minute: '2-digit', hour12: false } as const;
 const capitalizar = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1);
 
@@ -235,7 +234,7 @@ export class MiAgenda {
         title: `${c.patient_first_names} ${c.patient_last_names} · ${c.specialty_name}`,
         start: c.starts_at,
         end: c.ends_at,
-        color: COLOR[c.status],
+        color: COLOR_ESTADO[c.status],
         display: 'block', // barra de color sólida (en el mes, en vez de un punto con texto pequeño)
         extendedProps: aDetalle(c),
       }));

@@ -116,6 +116,6 @@ export class AuthService {
   }
 
   rutaInicio(): string {
-    return this.rol() === 'admin' ? '/admin/agenda' : this.rol() === 'especialista' ? '/mi-agenda' : '/ingresar';
+    return this.rol() === 'admin' ? '/admin/agenda' : this.rol() === 'especialista' ? '/mi-panel' : '/ingresar';
   }
 }

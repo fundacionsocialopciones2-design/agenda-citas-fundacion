@@ -36,7 +36,14 @@ html {
   --app-borde: #d9e0ea;
   --app-texto: #1b2a41;
   --app-suave: #4b5b70;
-  --app-radio: 12px;
+  --app-radio: 16px;
+
+  // Profundidad: sombra de dos capas (una corta y nítida + una amplia y difusa) con el tinte azul de la fundación.
+  --app-sombra: 0 1px 2px rgba(16, 42, 84, 0.06), 0 6px 18px rgba(16, 42, 84, 0.08);
+  --app-sombra-alta: 0 2px 4px rgba(16, 42, 84, 0.08), 0 14px 32px rgba(16, 42, 84, 0.16);
+  --app-borde-suave: #e3e9f2;
+
+  --mat-dialog-container-shape: 16px;
 }
 
 * {
@@ -104,10 +111,31 @@ h2 {
   color: var(--app-suave);
 }
 .tarjeta {
-  background: #fff;
-  border: 1px solid var(--app-borde);
+  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   padding: 20px;
+  box-shadow: var(--app-sombra);
+}
+// Tarjetas que contienen acciones: la sombra crece al pasar el mouse o al entrar con el teclado.
+.tarjeta--accion {
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+.tarjeta--accion:hover,
+.tarjeta--accion:focus-within {
+  box-shadow: var(--app-sombra-alta);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta--accion {
+    transition: none;
+  }
+  .tarjeta--accion:hover,
+  .tarjeta--accion:focus-within {
+    transform: none;
+  }
 }
 .fila {
   display: flex;
@@ -131,9 +159,10 @@ h2 {
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  border: 1px solid var(--app-borde);
+  border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   overflow: hidden;
+  box-shadow: var(--app-sombra);
 }
 .tabla caption {
   text-align: left;
@@ -176,13 +205,16 @@ h2 {
   .tabla {
     border: 0;
     background: transparent;
+    box-shadow: none; // en móvil cada fila es su propia tarjeta
+    overflow: visible;
   }
   .tabla tr {
     background: #fff;
-    border: 1px solid var(--app-borde);
+    border: 1px solid var(--app-borde-suave);
     border-radius: var(--app-radio);
     margin-bottom: 12px;
     padding: 6px 0;
+    box-shadow: var(--app-sombra);
   }
   .tabla td {
     border: 0;
@@ -241,6 +273,7 @@ h2 {
   border: 1px dashed var(--app-borde);
   border-radius: var(--app-radio);
   color: var(--app-suave);
+  box-shadow: var(--app-sombra);
 }
 .estado .material-symbols-outlined {
   font-size: 40px;
@@ -284,10 +317,11 @@ h2 {
 full-calendar {
   display: block;
   background: #fff;
-  border: 1px solid var(--app-borde);
+  border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   padding: 8px;
   min-height: 560px;
+  box-shadow: var(--app-sombra);
 }
 
 mat-dialog-content {

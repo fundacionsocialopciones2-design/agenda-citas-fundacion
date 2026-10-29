@@ -30,7 +30,7 @@ Todos se ejecutan dentro de `web/` y exigen **Node 24.22** (`nvm use 24.22.0`; N
 - **Errores**: `AgendaApi` convierte los errores de Postgres/Edge Function en `ErrorApi` / `ErrorConflicto` (`AG409`, citas futuras en conflicto); las pantallas los capturan y los muestran. Detalle en `src/app/core/CLAUDE.md`.
 - **Estado**: servicios globales con señales (`AuthService`, `InactividadService`) y estado local en cada componente con `signal`/`computed`. Los datos se piden al entrar a la pantalla (sin caché).
 - **Arranque**: `main.ts` → `app.config.ts` (proveedores: router con `withComponentInputBinding`, locale, Material) → `App`, que instancia `InactividadService` y redirige a `/ingresar` si la sesión se pierde. Rutas perezosas en `app.routes.ts` protegidas con `conRol('admin' | 'especialista')`.
-- **Presupuesto de bundle**: el build de producción emite una advertencia (inicial 733 kB frente al aviso de 500 kB; el límite de error es 1 MB). El calendario va en un chunk perezoso aparte.
+- **Presupuesto de bundle**: el build de producción emite una advertencia (inicial 735 kB frente al aviso de 500 kB; el límite de error es 1 MB). El presupuesto de estilos por componente se subió a aviso 8 kB / error 12 kB porque el CSS del Dashboard (`panel.ts`) pesa ~5,8 kB. El calendario va en un chunk perezoso aparte.
 
 ## Estructura del proyecto
 ```
@@ -51,8 +51,8 @@ web/
         ├── features/       — una carpeta por área funcional
         │   ├── acceso/     — ingresar, recuperar y restablecer contraseña
         │   ├── admin/      — agenda, especialistas, horarios/bloqueos y sus diálogos
-        │   └── especialista/ — calendario (FullCalendar), lista de próximas citas, detalle
-        ├── layout/         — marco.ts: barra superior y navegación según rol
+        │   └── especialista/ — dashboard (inicio), calendario (FullCalendar), lista de próximas citas, detalle
+        ├── layout/         — marco.ts: barra superior y menú lateral según rol (mat-sidenav: fijo y contraíble en pantallas anchas, superpuesto con ☰ por debajo de 840 px; el contenido hace scroll dentro de mat-sidenav-content)
         └── shared/         — solo piezas realmente transversales: confirmar, estado, eventos-formulario
 ```
 Cada carpeta con reglas propias tiene su `CLAUDE.md` (`core/`, `core/auth/`, `core/inactividad/`, `features/admin/`, `features/especialista/`).
@@ -62,5 +62,6 @@ Cada carpeta con reglas propias tiene su `CLAUDE.md` (`core/`, `core/auth/`, `co
 - Reglas Angular 22 de la guía del MCP: sin `standalone: true`, sin `OnPush` explícito, `@Service()` + `inject()`, señales, `input()`/`output()`, control de flujo nativo (`@if`/`@for`), sin `ngClass`/`ngStyle`/`@HostBinding`, Signal Forms en formularios nuevos. Los miembros usados solo en la plantilla son `protected`; los que inicializa Angular son `readonly`.
 - Diálogos: señales + inputs nativos; los ayudantes `valorDe`/`marcadoDe` están en `shared/eventos-formulario.ts`.
 - Estilos: reutilizar las clases globales de `styles.scss` antes de escribir CSS por componente; `.tabla` se apila como tarjetas por debajo de 720 px.
+- Profundidad visual (toda la app): los tokens `--app-sombra`, `--app-sombra-alta`, `--app-borde-suave` y `--app-radio` (16 px) viven en `styles.scss`; `.tarjeta`, `.tabla`, `.estado` y el calendario ya los usan, así que una pantalla nueva solo debe usar esas clases. `.tarjeta--accion` añade elevación al pasar el mouse o con foco (solo para tarjetas con botones; se desactiva con «reducir movimiento»). No usar biseles ni perspectiva 3D literal: baja el contraste.
 - Accesibilidad: etiquetas en todos los campos, `role="alert"`/`status`, objetivos táctiles de 44 px, foco visible.
 - Pruebas: los componentes mockean `AgendaApi`/`MatDialog` con `useValue`; las que dependen del tiempo usan `vi.useFakeTimers()` y `TestBed.tick()` para ejecutar los `effect`.

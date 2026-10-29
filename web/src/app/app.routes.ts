@@ -31,10 +31,14 @@ export const routes: Routes = [
     ],
   },
   {
-    path: 'mi-agenda',
+    // Especialista: sus pantallas comparten el marco; las URL se conservan (/mi-panel, /mi-agenda).
+    path: '',
     canActivate: [conRol('especialista')],
     loadComponent: () => import('./layout/marco').then((m) => m.Marco),
-    children: [{ path: '', title: 'Mi agenda · Agenda de citas', loadComponent: () => import('./features/especialista/mi-agenda').then((m) => m.MiAgenda) }],
+    children: [
+      { path: 'mi-panel', title: 'Dashboard · Agenda de citas', loadComponent: () => import('./features/especialista/panel').then((m) => m.Panel) },
+      { path: 'mi-agenda', title: 'Mi agenda · Agenda de citas', loadComponent: () => import('./features/especialista/mi-agenda').then((m) => m.MiAgenda) },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

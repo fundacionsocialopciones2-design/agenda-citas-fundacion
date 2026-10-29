@@ -11,6 +11,7 @@ import {
   EstadoCita,
   FiltrosCitas,
   HorarioSemanal,
+  ResumenEspecialista,
   TipoBloqueo,
   TipoDocumento,
 } from './models';
@@ -228,5 +229,9 @@ export class AgendaApi {
 
   async miAgenda(desdeIso: string, hastaIso: string): Promise<CitaEspecialista[]> {
     return this.datos(await this.sb.rpc('my_agenda', { p_from: desdeIso, p_to: hastaIso })) as CitaEspecialista[];
+  }
+
+  async miDashboard(): Promise<ResumenEspecialista> {
+    return this.datos(await this.sb.rpc('my_dashboard')) as ResumenEspecialista;
   }
 }

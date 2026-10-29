@@ -112,6 +112,38 @@ export const ETIQUETA_ESTADO: Record<EstadoCita, string> = {
   no_asistio: 'No asistió',
 };
 
+/** Color de cada estado en el calendario y en el dashboard (siempre acompañado de su texto). */
+export const COLOR_ESTADO: Record<EstadoCita, string> = {
+  confirmada: '#1f5aa6',
+  asistida: '#14603f',
+  no_asistio: '#5b6676',
+  cancelada: '#8f2419',
+};
+
+/** Resumen del dashboard del especialista (my_dashboard). Las cifras las calcula la base de datos, en hora de Colombia. */
+export interface ResumenEspecialista {
+  hoy: string; // YYYY-MM-DD
+  semana_inicio: string; // lunes, YYYY-MM-DD
+  mes_inicio: string;
+  citas_hoy: number;
+  citas_ayer: number;
+  citas_semana: number;
+  citas_semana_anterior: number;
+  citas_mes: number;
+  citas_mes_anterior: number;
+  canceladas_mes: number;
+  canceladas_mes_anterior: number;
+  /** Fracción 0–1; null si aún no hay citas resueltas en el periodo. */
+  inasistencia_mes: number | null;
+  inasistencia_mes_anterior: number | null;
+  estados_mes: Record<EstadoCita, number>;
+  por_dia_semana: { fecha: string; total: number }[];
+  por_cerrar: number;
+  por_cerrar_lista: CitaEspecialista[];
+  citas_de_hoy: CitaEspecialista[];
+  proxima: CitaEspecialista | null;
+}
+
 export const ETIQUETA_BLOQUEO: Record<TipoBloqueo, string> = {
   descanso: 'Descanso',
   vacaciones: 'Vacaciones',

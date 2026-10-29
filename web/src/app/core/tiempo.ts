@@ -18,6 +18,14 @@ export const fechaHoraBogota = (iso: string): string => fmtFechaHora.format(new 
 export const fechaBogota = (iso: string): string => fmtFecha.format(new Date(iso));
 export const horaBogota = (iso: string): string => fmtHora.format(new Date(iso));
 
+const fmtHoraDelDia = new Intl.DateTimeFormat('en-US', { timeZone: ZONA, hour: 'numeric', hourCycle: 'h23' });
+/** Hora (0–23) de un instante en Bogotá. */
+export const horaDelDiaBogota = (d: Date): number => Number(fmtHoraDelDia.format(d)) % 24;
+
+const fmtDiaMes =new Intl.DateTimeFormat('es-CO', { timeZone: ZONA, day: 'numeric', month: 'short' });
+/** Ej.: «27 oct». */
+export const diaMesBogota = (iso: string): string => fmtDiaMes.format(new Date(iso));
+
 /** YYYY-MM-DD de un instante, en hora de Bogotá. */
 export const diaBogota = (iso: string | Date): string => fmtIsoFecha.format(typeof iso === 'string' ? new Date(iso) : iso);
 
