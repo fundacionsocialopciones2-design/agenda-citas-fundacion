@@ -50,7 +50,7 @@ web/
         │   └── inactividad/— cierre de sesión por inactividad y su aviso
         ├── features/       — una carpeta por área funcional
         │   ├── acceso/     — ingresar, recuperar y restablecer contraseña
-        │   ├── admin/      — agenda, especialistas, horarios/bloqueos y sus diálogos
+        │   ├── admin/      — agenda, especialistas, horarios/bloqueos, cursos e inscritos, asesorías y solicitudes (ambas de solo lectura) y sus diálogos
         │   └── especialista/ — dashboard (inicio), calendario (FullCalendar), lista de próximas citas, detalle
         ├── layout/         — marco.ts: barra superior y menú lateral según rol (mat-sidenav: fijo y contraíble en pantallas anchas, superpuesto con ☰ por debajo de 840 px; el contenido hace scroll dentro de mat-sidenav-content)
         └── shared/         — solo piezas realmente transversales: confirmar, estado, eventos-formulario

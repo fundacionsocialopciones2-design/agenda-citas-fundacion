@@ -47,6 +47,8 @@ Angular 22.2 · Node 24.22 · Material 22 · Signal Forms · FullCalendar 7 (MIT
 | Agenda con filtros, nueva cita, cancelar, reprogramar, asistencia | `/admin/agenda` | admin |
 | Especialistas (crear, editar, activar/desactivar, enviar enlace) | `/admin/especialistas` | admin |
 | Horarios semanales y bloqueos (con detección de conflictos) | `/admin/horarios` | admin |
+| Cursos del chatbot e inscritos (filtros por categoría, curso, estado y nombre/documento) | `/admin/cursos` | admin |
+| Asesorías jurídicas y generales y sus solicitudes (mismos filtros) | `/admin/asesorias` | admin |
 | Dashboard (inicio del especialista): cifras, próxima cita, por cerrar, hoy, gráficos | `/mi-panel` | especialista |
 | Calendario mensual/semanal/diario + lista (móvil) | `/mi-agenda` | especialista |
 
@@ -199,7 +201,27 @@ Código: `core/` (modelos, sesión, guards, acceso a datos), `shared/` (marco, e
 - Presupuesto de estilos por componente subido a aviso 8 kB / error 12 kB en `angular.json` (el CSS del Dashboard pesa ~5,8 kB). Se tocó una configuración sin que se pidiera expresamente: queda anotado por si se prefiere revertirlo.
 - 55/55 pruebas y compilación correcta. **No se ha visto en el navegador:** pendiente la revisión visual (colores, espacios, menú contraído y vista móvil).
 
+### Pestaña «Cursos» del administrador (30 oct) — migración 20 y frontend
+- **Decisión del responsable del proyecto:** nueva pestaña «Cursos» para ver todos los cursos y las personas inscritas, con filtros. Pidió revisar primero las tablas y no crear tablas innecesarias.
+- Revisión de Supabase: **no existe una tabla de cursos**. El catálogo es el menú del chatbot (`bot_nodos`): los cursos son los nodos tipo `info` bajo las ramas con acción «inscripción» — Cursos de idiomas (8), Cursos de seguridad privada (15, en dos submenús), Primaria y bachillerato por ciclos (2) y Técnicos laborales (5): 30 cursos. Las inscripciones están en `bot_inscripciones` (3 reales al 30 oct, todas «pendiente»), con FK `curso_id → bot_nodos` y copia en texto del título y la categoría. Ambas tablas son del motor del chatbot, con RLS activo y sin políticas.
+- Migración 20 (aplicada por el MCP), **sin tablas nuevas y sin tocar las tablas `bot_*`**: `agenda.cursos_catalogo()` (regla del catálogo), `public.admin_cursos()` (catálogo con número de inscritos; incluye «Sin curso vinculado» si un curso se borra del menú) y `public.admin_inscripciones(curso, categoría, estado, búsqueda)` (máx. 500, más recientes primero; búsqueda por nombre o documento sin puntos). Ambas exigen `is_admin()`; especialista → `forbidden`; `anon` sin acceso.
+- Verificado con `supabase/tests/09_admin_cursos.sql`: 14/14 OK.
+- Frontend: `features/admin/cursos.ts` (catálogo por categoría con contador; clic en un curso filtra sus inscritos), filtros (categoría, curso, estado, nombre o documento), tabla que se apila en móvil y `detalle-inscripcion.ts` con toda la información (documento, WhatsApp, teléfono de contacto, correo, ciudad, dirección, modalidad, fecha de autorización de datos). 64/64 pruebas y compilación correcta. Pendiente: revisarlo en el navegador.
+- Solo lectura: el estado de la inscripción (pendiente, contactado, matriculado, cancelado) se muestra pero no se puede cambiar desde el dashboard.
+
+### Pestaña «Asesorías» del administrador (30 oct) — migración 21 y frontend
+- **Decisiones del responsable del proyecto:** una pestaña «Asesorías» con las asesorías jurídicas **y** las generales, filtrables; solo lectura; la solicitud de prueba por WhatsApp la hará él.
+- Revisión de Supabase: no hay una tabla propia de asesorías. Los tipos están en el menú del bot (`bot_nodos`): **Asesoría jurídica** → Consultoría legal general, Defensa de derechos humanos, Derechos de petición; **Asesorías generales** → contables, empresariales y financieras, capacitaciones y diplomados, cátedra de la paz, derechos humanos, medios de comunicación alternativos, servicio social y pasantías, y el submenú «Simposios y bienestar empresarial» (3). Las solicitudes van a `bot_solicitudes` (`tipo = 'servicio'`; la misma tabla guarda citas sin agenda y urgencias). Al 30 oct la tabla tiene **0 registros**.
+- Migración 21 (aplicada por el MCP), sin tablas nuevas y sin tocar las `bot_*`: `agenda.asesorias_nodos()`, `public.admin_asesorias()` y `public.admin_solicitudes_asesoria(...)`, ambas exigen `is_admin()`. Si el bot guarda la rama en vez del tipo concreto, la solicitud se muestra como «<rama>: sin tipo específico».
+- Verificado con `supabase/tests/10_admin_asesorias.sql`: 15/15 OK (incluye que las citas de la misma tabla no aparecen).
+- Frontend: `features/admin/asesorias.ts` y `detalle-solicitud.ts` (incluye el texto del caso, la preferencia y las notas). El catálogo agrupado y sus estilos pasaron a ser compartidos con Cursos (`agrupar-catalogo.ts`, clases globales). 73/73 pruebas y compilación correcta. Pendiente: revisarlo en el navegador.
+- Punto para revisión jurídica (Ley 1581): el campo «detalle» puede contener información sensible del caso; solo lo ve el administrador.
+- Por confirmar con la primera solicitud real: si `bot_solicitudes.servicio_id` guarda el tipo concreto (p. ej. «Derechos de petición») o la rama.
+
 ## Pendiente
+- Confirmar con la prueba por WhatsApp cómo guarda el bot el tipo de asesoría (`servicio_id`).
+- Decidir si el administrador puede cambiar el estado de una solicitud de asesoría y escribir notas (la tabla ya tiene `estado` y `notas`).
+- Decidir si el administrador puede cambiar el estado de una inscripción (pendiente → contactado → matriculado / cancelado) desde la pestaña Cursos, y si se necesita exportar los inscritos (por ejemplo a Excel).
 - Validación de la cédula en el chatbot (en espera; propuesta: reglas por tipo de documento en Postgres, rechazo de números basura y confirmación en el bot).
 - Decidir si se permite corregir una asistencia mal marcada y si el paciente debe recibir aviso por WhatsApp al cancelar el especialista.
 - Rotar la clave `sb_secret_` de Supabase (Critical del informe de seguridad)

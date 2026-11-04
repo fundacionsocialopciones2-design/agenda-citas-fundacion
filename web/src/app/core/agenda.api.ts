@@ -6,12 +6,18 @@ import {
   Cita,
   CitaEspecialista,
   Cupo,
+  Curso,
   Especialidad,
   Especialista,
   EstadoCita,
+  FiltrosAsesorias,
   FiltrosCitas,
+  FiltrosInscripciones,
   HorarioSemanal,
+  Inscripcion,
   ResumenEspecialista,
+  SolicitudAsesoria,
+  TipoAsesoria,
   TipoBloqueo,
   TipoDocumento,
 } from './models';
@@ -216,6 +222,38 @@ export class AgendaApi {
 
   async registrarAsistencia(id: string, estado: Extract<EstadoCita, 'asistida' | 'no_asistio'>): Promise<void> {
     this.verificar(this.datos(await this.sb.rpc('admin_set_attendance', { p_appointment_id: id, p_status: estado })) as RespuestaRpc);
+  }
+
+  // ---------- Cursos (solo lectura; las funciones exigen is_admin()) ----------
+  async cursos(): Promise<Curso[]> {
+    return (this.datos(await this.sb.rpc('admin_cursos')) as Curso[]).map((c) => ({ ...c, inscritos: Number(c.inscritos) }));
+  }
+
+  async inscripciones(f: FiltrosInscripciones): Promise<Inscripcion[]> {
+    return this.datos(
+      await this.sb.rpc('admin_inscripciones', {
+        p_curso_id: f.cursoId || null,
+        p_categoria_id: f.categoriaId || null,
+        p_estado: f.estado || null,
+        p_busqueda: f.busqueda.trim() || null,
+      }),
+    ) as Inscripcion[];
+  }
+
+  // ---------- Asesorías jurídicas y generales (solo lectura; las funciones exigen is_admin()) ----------
+  async asesorias(): Promise<TipoAsesoria[]> {
+    return (this.datos(await this.sb.rpc('admin_asesorias')) as TipoAsesoria[]).map((t) => ({ ...t, solicitudes: Number(t.solicitudes) }));
+  }
+
+  async solicitudesAsesoria(f: FiltrosAsesorias): Promise<SolicitudAsesoria[]> {
+    return this.datos(
+      await this.sb.rpc('admin_solicitudes_asesoria', {
+        p_servicio_id: f.servicioId || null,
+        p_categoria_id: f.categoriaId || null,
+        p_estado: f.estado || null,
+        p_busqueda: f.busqueda.trim() || null,
+      }),
+    ) as SolicitudAsesoria[];
   }
 
   // ---------- Especialista (solo sobre sus propias citas; lo exige la base de datos) ----------

@@ -154,6 +154,95 @@ h2 {
   align-items: center;
 }
 
+// ---------- Catálogo agrupado por categoría (Cursos, Asesorías): tarjetas con elementos seleccionables ----------
+.catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.catalogo-categoria h2 {
+  font-size: 1.05rem;
+  margin: 0 0 10px;
+}
+.contador {
+  display: inline-block;
+  min-width: 30px;
+  padding: 0 10px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: #e4edf9;
+  color: #0f3a70;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.catalogo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.catalogo-item {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  color: var(--app-texto);
+  text-align: left;
+  cursor: pointer;
+}
+.catalogo-item:hover {
+  background: var(--app-fondo);
+  border-color: var(--app-borde-suave);
+}
+.catalogo-item[aria-pressed='true'] {
+  background: #e4edf9;
+  border-color: #1f5aa6;
+  box-shadow: inset 4px 0 0 #1f5aa6;
+}
+.catalogo-item__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.catalogo-item__titulo {
+  font-weight: 600;
+}
+.catalogo-item__nota {
+  font-size: 0.8rem;
+  color: var(--app-suave);
+}
+.catalogo-item__cifra {
+  flex: none;
+  min-width: 32px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #1f5aa6;
+  color: #fff;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.catalogo-item--vacio .catalogo-item__cifra {
+  background: #edf0f4;
+  color: var(--app-suave);
+}
+.titulo-resultados {
+  margin: 0 0 12px;
+}
+.titulo-resultados:focus {
+  outline: none;
+}
+
 // ---------- Tablas que se apilan en móvil ----------
 .tabla {
   width: 100%;
@@ -259,6 +348,32 @@ h2 {
 .chip--no_asistio {
   background: #edf0f4;
   color: #3f4a5a;
+}
+// Estados de una inscripción a un curso
+.chip--pendiente {
+  background: #fff1cc;
+  color: #6b4a00;
+}
+.chip--contactado {
+  background: #e4edf9;
+  color: #0f3a70;
+}
+.chip--matriculado {
+  background: #e2f4ea;
+  color: #14603f;
+}
+.chip--cancelado {
+  background: #fbe5e2;
+  color: #8f2419;
+}
+// Estados de una solicitud de asesoría (pendiente, contactado y cancelada reutilizan los de arriba)
+.chip--agendada {
+  background: #ede8fa;
+  color: #43298a;
+}
+.chip--atendida {
+  background: #e2f4ea;
+  color: #14603f;
 }
 
 // ---------- Estados: carga, vacío, error, conflicto ----------

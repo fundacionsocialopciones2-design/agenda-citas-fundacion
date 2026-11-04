@@ -247,6 +247,8 @@ export class Marco {
           { ruta: '/admin/agenda', texto: 'Agenda', icono: 'event_note' },
           { ruta: '/admin/especialistas', texto: 'Especialistas', icono: 'groups' },
           { ruta: '/admin/horarios', texto: 'Horarios', icono: 'schedule' },
+          { ruta: '/admin/cursos', texto: 'Cursos', icono: 'school' },
+          { ruta: '/admin/asesorias', texto: 'Asesorías', icono: 'gavel' },
         ]
       : [
           { ruta: '/mi-panel', texto: 'Dashboard', icono: 'dashboard' },

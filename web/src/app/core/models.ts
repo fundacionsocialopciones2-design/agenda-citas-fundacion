@@ -144,6 +144,111 @@ export interface ResumenEspecialista {
   proxima: CitaEspecialista | null;
 }
 
+// ---------- Cursos (catálogo del menú del chatbot e inscripciones hechas por WhatsApp) ----------
+export type EstadoInscripcion = 'pendiente' | 'contactado' | 'matriculado' | 'cancelado';
+
+export const ETIQUETA_INSCRIPCION: Record<EstadoInscripcion, string> = {
+  pendiente: 'Pendiente',
+  contactado: 'Contactado',
+  matriculado: 'Matriculado',
+  cancelado: 'Cancelado',
+};
+
+/** Id especial para las inscripciones cuyo curso ya no existe en el menú del bot. */
+export const SIN_CURSO = '__sin_curso';
+
+/** Un curso del catálogo (admin_cursos). La categoría es la rama del menú; el grupo, un submenú intermedio. */
+export interface Curso {
+  curso_id: string;
+  titulo: string;
+  categoria_id: string | null;
+  categoria: string;
+  grupo: string | null;
+  activo: boolean;
+  inscritos: number;
+}
+
+/** Una persona inscrita (admin_inscripciones). `telefono` es el WhatsApp desde el que se inscribió. */
+export interface Inscripcion {
+  id: number;
+  creado: string;
+  curso_id: string | null;
+  curso: string;
+  categoria: string | null;
+  nombre_completo: string;
+  tipo_documento: string;
+  numero_documento: string;
+  telefono: string;
+  telefono_contacto: string | null;
+  correo: string;
+  ciudad: string;
+  direccion: string | null;
+  modalidad: string | null;
+  estado: EstadoInscripcion;
+  autoriza_datos_at: string;
+}
+
+export interface FiltrosInscripciones {
+  cursoId: string;
+  categoriaId: string;
+  estado: EstadoInscripcion | '';
+  busqueda: string;
+}
+
+// ---------- Asesorías (jurídicas y generales; solicitudes hechas por WhatsApp) ----------
+export type EstadoSolicitud = 'pendiente' | 'contactado' | 'agendada' | 'atendida' | 'cancelada';
+
+export const ETIQUETA_SOLICITUD: Record<EstadoSolicitud, string> = {
+  pendiente: 'Pendiente',
+  contactado: 'Contactado',
+  agendada: 'Agendada',
+  atendida: 'Atendida',
+  cancelada: 'Cancelada',
+};
+
+/** Id especial para las solicitudes cuyo servicio ya no existe en el menú del bot. */
+export const SIN_SERVICIO = '__sin_servicio';
+
+/** Un tipo de asesoría (admin_asesorias). La categoría es la rama del menú (jurídica o generales). */
+export interface TipoAsesoria {
+  servicio_id: string;
+  titulo: string;
+  categoria_id: string | null;
+  categoria: string;
+  grupo: string | null;
+  activo: boolean;
+  solicitudes: number;
+}
+
+/** Una solicitud de asesoría (admin_solicitudes_asesoria). `detalle` es lo que la persona contó de su caso. */
+export interface SolicitudAsesoria {
+  id: number;
+  creado: string;
+  servicio_id: string | null;
+  servicio: string;
+  categoria: string | null;
+  nombre_completo: string;
+  tipo_documento: string | null;
+  numero_documento: string | null;
+  telefono: string;
+  telefono_contacto: string | null;
+  correo: string | null;
+  modalidad: string | null;
+  direccion: string | null;
+  detalle: string | null;
+  preferencia: string | null;
+  estado: EstadoSolicitud;
+  notas: string | null;
+  autoriza_datos_at: string;
+}
+
+export interface FiltrosAsesorias {
+  servicioId: string;
+  categoriaId: string;
+  estado: EstadoSolicitud | '';
+  busqueda: string;
+}
+
 export const ETIQUETA_BLOQUEO: Record<TipoBloqueo, string> = {
   descanso: 'Descanso',
   vacaciones: 'Vacaciones',

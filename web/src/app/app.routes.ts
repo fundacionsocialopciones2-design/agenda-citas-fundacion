@@ -28,6 +28,8 @@ export const routes: Routes = [
       { path: 'agenda', title: 'Agenda · Agenda de citas', loadComponent: () => import('./features/admin/agenda').then((m) => m.AgendaAdmin) },
       { path: 'especialistas', title: 'Especialistas · Agenda de citas', loadComponent: () => import('./features/admin/especialistas').then((m) => m.Especialistas) },
       { path: 'horarios', title: 'Horarios · Agenda de citas', loadComponent: () => import('./features/admin/horarios').then((m) => m.Horarios) },
+      { path: 'cursos', title: 'Cursos · Agenda de citas', loadComponent: () => import('./features/admin/cursos').then((m) => m.Cursos) },
+      { path: 'asesorias', title: 'Asesorías · Agenda de citas', loadComponent: () => import('./features/admin/asesorias').then((m) => m.Asesorias) },
     ],
   },
   {
