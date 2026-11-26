@@ -34,6 +34,8 @@ export const MENSAJES_AGENDA: Record<string, string> = {
   not_confirmed: 'Solo se puede registrar asistencia de citas confirmadas.',
   not_started: 'La cita todavía no ha comenzado.',
   invalid_status: 'Estado no válido.',
+  request_not_found: 'La solicitud no existe.',
+  status_changed: 'El estado de esta solicitud cambió mientras la veías. Revísala de nuevo.',
 };
 
 export const MENSAJE_ERROR_GENERICO = 'Ocurrió un error inesperado. Inténtalo de nuevo.';
