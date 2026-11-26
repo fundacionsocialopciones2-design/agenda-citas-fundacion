@@ -1,10 +1,9 @@
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
-import { Curso, ETIQUETA_INSCRIPCION, EstadoInscripcion, FiltrosInscripciones, Inscripcion, SIN_CURSO } from '../../core/models';
+import { Curso, ETIQUETA_INSCRIPCION, EstadoInscripcion, FiltrosInscripciones, Inscripcion } from '../../core/models';
 import { fechaBogota } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
@@ -19,54 +18,15 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
  */
 @Component({
   selector: 'app-cursos',
-  imports: [MatButtonModule, MatIconModule, Estado],
+  imports: [MatButtonModule, Estado],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
         <div>
           <h1>Cursos</h1>
-          <p>Cursos que ofrece el chatbot y las personas que se inscribieron por WhatsApp. Elige un curso para ver sus inscritos.</p>
+          <p>Cursos que ofrece el chatbot y las personas que se inscribieron por WhatsApp.</p>
         </div>
       </div>
-
-      @switch (estadoCatalogo()) {
-        @case ('cargando') {
-          <app-estado tipo="cargando" titulo="Cargando cursos…" />
-        }
-        @case ('error') {
-          <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="cargarCatalogo()" />
-        }
-        @default {
-          <section class="catalogo" aria-label="Catálogo de cursos">
-            @for (g of categorias(); track g.nombre) {
-              <article class="tarjeta catalogo-categoria">
-                <h2>{{ g.nombre }} <span class="contador" [attr.aria-label]="g.total + ' inscritos'">{{ g.total }}</span></h2>
-                <ul class="catalogo-lista">
-                  @for (c of g.elementos; track c.curso_id) {
-                    <li>
-                      <button
-                        type="button"
-                        class="catalogo-item"
-                        [class.catalogo-item--vacio]="c.inscritos === 0"
-                        [attr.aria-pressed]="filtros().cursoId === c.curso_id"
-                        (click)="elegirCurso(c)"
-                      >
-                        <span class="catalogo-item__texto">
-                          <span class="catalogo-item__titulo">{{ c.titulo }}</span>
-                          @if (c.grupo || !c.activo) {
-                            <span class="catalogo-item__nota">{{ c.grupo }}{{ c.grupo && !c.activo ? ' · ' : '' }}{{ c.activo ? '' : 'No disponible en el menú' }}</span>
-                          }
-                        </span>
-                        <span class="catalogo-item__cifra">{{ c.inscritos }}<span class="solo-lectores"> {{ c.inscritos === 1 ? 'inscrito' : 'inscritos' }}</span></span>
-                      </button>
-                    </li>
-                  }
-                </ul>
-              </article>
-            }
-          </section>
-        }
-      }
 
       <form class="tarjeta" (submit)="$event.preventDefault(); buscar()" aria-label="Filtros de inscritos">
         <div class="fila">
@@ -109,13 +69,13 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
       </form>
 
       <section aria-labelledby="t-inscritos">
-        <h2 id="t-inscritos" class="titulo-resultados" tabindex="-1" #encabezadoResultados>{{ tituloResultados() }}</h2>
+        <h2 id="t-inscritos" class="titulo-resultados">{{ tituloResultados() }}</h2>
         @switch (estado()) {
           @case ('cargando') {
             <app-estado tipo="cargando" titulo="Cargando inscritos…" />
           }
           @case ('error') {
-            <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="buscar()" />
+            <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="recargar()" />
           }
           @default {
             @if (inscritos().length === 0) {
@@ -173,14 +133,12 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
 export class Cursos {
   private readonly api = inject(AgendaApi);
   private readonly dialog = inject(MatDialog);
-  private readonly tituloResultadosRef = viewChild<ElementRef<HTMLElement>>('encabezadoResultados');
 
   protected readonly valor = valorDe;
   protected readonly fecha = fechaBogota;
   protected readonly etiqueta = ETIQUETA_INSCRIPCION;
   protected readonly estados = (Object.keys(ETIQUETA_INSCRIPCION) as EstadoInscripcion[]).map((valor) => ({ valor, texto: ETIQUETA_INSCRIPCION[valor] }));
 
-  protected readonly estadoCatalogo = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly mensajeError = signal('');
   protected readonly catalogo = signal<Curso[]>([]);
@@ -204,18 +162,20 @@ export class Cursos {
   });
 
   constructor() {
+    this.recargar();
+  }
+
+  protected recargar(): void {
     void this.cargarCatalogo();
     void this.buscar();
   }
 
-  protected async cargarCatalogo(): Promise<void> {
-    this.estadoCatalogo.set('cargando');
+  /** Opciones de los filtros. Si fallan, la tabla sigue funcionando con «Todos». */
+  private async cargarCatalogo(): Promise<void> {
     try {
       this.catalogo.set(await this.api.cursos());
-      this.estadoCatalogo.set('listo');
-    } catch (e) {
-      this.mensajeError.set(mensajeDeError(e));
-      this.estadoCatalogo.set('error');
+    } catch {
+      this.catalogo.set([]);
     }
   }
 
@@ -243,18 +203,6 @@ export class Cursos {
       const conserva = !categoriaId || curso?.categoria_id === categoriaId;
       return { ...f, categoriaId, cursoId: conserva ? f.cursoId : '' };
     });
-  }
-
-  /** Clic en un curso del catálogo: lo filtra (o lo quita si ya estaba elegido) y lleva el foco a los resultados. */
-  protected async elegirCurso(c: Curso): Promise<void> {
-    const yaElegido = this.filtros().cursoId === c.curso_id;
-    this.filtros.update((f) => ({
-      ...f,
-      cursoId: yaElegido ? '' : c.curso_id,
-      categoriaId: yaElegido || c.curso_id === SIN_CURSO ? '' : (c.categoria_id ?? ''),
-    }));
-    await this.buscar();
-    this.tituloResultadosRef()?.nativeElement.focus();
   }
 
   protected limpiar(): void {

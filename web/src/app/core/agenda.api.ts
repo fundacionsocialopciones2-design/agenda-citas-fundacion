@@ -5,17 +5,21 @@ import {
   Bloqueo,
   Cita,
   CitaEspecialista,
+  CitaPendiente,
   Cupo,
   Curso,
   Especialidad,
   Especialista,
   EstadoCita,
+  EstadoSolicitud,
   FiltrosAsesorias,
   FiltrosCitas,
+  FiltrosCitasPendientes,
   FiltrosInscripciones,
   HorarioSemanal,
   Inscripcion,
   ResumenEspecialista,
+  ServicioCita,
   SolicitudAsesoria,
   TipoAsesoria,
   TipoBloqueo,
@@ -254,6 +258,34 @@ export class AgendaApi {
         p_busqueda: f.busqueda.trim() || null,
       }),
     ) as SolicitudAsesoria[];
+  }
+
+  // ---------- Agenda pendiente: citas abiertas del bot (las funciones exigen is_admin()) ----------
+  async serviciosCita(): Promise<ServicioCita[]> {
+    return (this.datos(await this.sb.rpc('admin_servicios_cita')) as ServicioCita[]).map((s) => ({
+      ...s,
+      solicitudes: Number(s.solicitudes),
+      pendientes: Number(s.pendientes),
+    }));
+  }
+
+  async citasPendientes(f: FiltrosCitasPendientes): Promise<CitaPendiente[]> {
+    return this.datos(
+      await this.sb.rpc('admin_citas_pendientes', {
+        p_servicio_id: f.servicioId || null,
+        p_estado: f.estado || null,
+        p_busqueda: f.busqueda.trim() || null,
+      }),
+    ) as CitaPendiente[];
+  }
+
+  /** `estadoActual` es el que se estaba viendo: si ya cambió, la base de datos no lo pisa. */
+  async cambiarEstadoCitaPendiente(id: number, estadoActual: EstadoSolicitud, estado: EstadoSolicitud): Promise<void> {
+    this.verificar(
+      this.datos(
+        await this.sb.rpc('admin_cambiar_estado_cita_pendiente', { p_id: id, p_estado_actual: estadoActual, p_estado: estado }),
+      ) as RespuestaRpc,
+    );
   }
 
   // ---------- Especialista (solo sobre sus propias citas; lo exige la base de datos) ----------

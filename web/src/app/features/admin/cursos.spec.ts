@@ -55,12 +55,11 @@ async function renderizar(inscritos: Inscripcion[] = [inscripcion()]) {
 }
 
 describe('Cursos (administrador)', () => {
-  it('muestra el catálogo agrupado por categoría con los inscritos de cada curso', async () => {
+  it('no muestra tarjetas de catálogo: solo filtros y tabla', async () => {
     const { html } = await renderizar();
-    const categorias = Array.from(html.querySelectorAll('.catalogo-categoria h2')).map((h) => h.textContent!.replace(/\s+/g, ' ').trim());
-    expect(categorias).toEqual(['Cursos de idiomas 2', 'Cursos de seguridad privada 1']);
-    expect(html.querySelector('.catalogo-item--vacio')?.textContent).toContain('Francés');
-    expect(html.textContent).toContain('Cursos de formación');
+    expect(html.querySelector('.catalogo')).toBeNull();
+    expect(html.querySelector('form')).not.toBeNull();
+    expect(html.querySelector('table')).not.toBeNull();
   });
 
   it('al entrar trae todas las inscripciones y las muestra en la tabla', async () => {
@@ -71,24 +70,16 @@ describe('Cursos (administrador)', () => {
     expect(html.querySelector('tbody tr')?.textContent).toContain('Pendiente');
   });
 
-  it('al elegir un curso del catálogo filtra por ese curso y su categoría', async () => {
+  it('al elegir en el filtro y buscar, filtra por esa opción', async () => {
     const { html, api, fixture } = await renderizar();
-    const boton = Array.from(html.querySelectorAll<HTMLButtonElement>('button.catalogo-item')).find((b) => b.textContent?.includes('Operador de dron'))!;
-    boton.click();
-    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ cursoId: 'seg_drones', categoriaId: 'seguridad', estado: '', busqueda: '' }));
+    const select = html.querySelector<HTMLSelectElement>('#f-curso')!;
+    select.value = 'seg_drones';
+    select.dispatchEvent(new Event('change'));
+    html.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ cursoId: 'seg_drones', categoriaId: '', estado: '', busqueda: '' }));
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(boton.getAttribute('aria-pressed')).toBe('true');
     expect(html.querySelector('#t-inscritos')?.textContent).toContain('Inscritos en Operador de dron');
-  });
-
-  it('volver a pulsar el curso elegido quita el filtro', async () => {
-    const { html, api } = await renderizar();
-    const boton = () => Array.from(html.querySelectorAll<HTMLButtonElement>('button.catalogo-item')).find((b) => b.textContent?.includes('Inglés'))!;
-    boton().click();
-    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenCalledTimes(2));
-    boton().click();
-    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ cursoId: '', categoriaId: '', estado: '', busqueda: '' }));
   });
 
   it('al cambiar de categoría el selector de cursos solo ofrece los de esa categoría', async () => {

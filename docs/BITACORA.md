@@ -218,7 +218,64 @@ Código: `core/` (modelos, sesión, guards, acceso a datos), `shared/` (marco, e
 - Punto para revisión jurídica (Ley 1581): el campo «detalle» puede contener información sensible del caso; solo lo ve el administrador.
 - Por confirmar con la primera solicitud real: si `bot_solicitudes.servicio_id` guarda el tipo concreto (p. ej. «Derechos de petición») o la rama.
 
+### Diagnóstico: el bot no muestra a los psicólogos (25 nov) — solo lectura, sin cambios
+- Reporte: al agendar Psicología por WhatsApp el bot no muestra a Orquídea Chaparro ni a Camilo Alemán.
+- Verificado por el MCP (consultas de solo lectura y la conversación de prueba en `bot_mensajes`): el nodo `sal_mental` **sí** está enlazado a «Psicología» (lo anotado el 22 oct ya no aplica); ambos especialistas están activos, con horario L–S 8–17, y el bot calcula los mismos 324 cupos que `agenda.availability` en 21 días. Fechas y horas se ofrecen bien.
+- **Causa 1 (la que se ve):** la línea «👨‍⚕️ Profesional:» de la ficha del servicio sale del texto fijo `bot_nodos.profesional`, escrito a mano en cada nodo, no de la tabla `specialists`. Todos los nodos de odontología lo tienen; `sal_mental` lo tiene vacío, así que la ficha no nombra a nadie.
+- **Causa 2:** `bot_horas_libres` usa `distinct on (inicio) … order by inicio, especialista`: si ambos están libres a esa hora, asigna siempre al primero en orden alfabético (Camilo). Orquídea solo recibe citas por WhatsApp cuando Camilo ya está ocupado a esa hora.
+- Hallazgo aparte: `bot_horarios_disponibles` ya no llama a `agenda.availability` como dejó la migración 09 (hoy repite la lógica en SQL propio). Los resultados coinciden por ahora, pero las reglas pueden desalinearse.
+
+### El paciente elige el profesional por WhatsApp (25 nov) — migración 22
+- **Decisiones del usuario:** (a) la ficha toma los profesionales de `specialists`; (b) el paciente elige el profesional; (c) `bot_horarios_disponibles` vuelve a usar `agenda.availability`.
+- Migración 22 `bot_elegir_profesional` (aplicada por el MCP), sin tablas nuevas y sin tocar datos de `bot_nodos`:
+  - `bot_horarios_disponibles` → envoltorio de `agenda.availability` (mín. 2 h, máx. 30 días; `bot_config` solo puede ser más estricta). Pasa a `SECURITY DEFINER`, `search_path = ''`, solo `service_role`: el bot corre como `service_role`, que no tiene USAGE en `agenda` (probable razón de la reescritura anterior).
+  - Nuevas: `bot_profesionales_libres(especialidad)`, `bot_fechas_libres(especialidad, especialista)`, `bot_horas_libres(especialidad, fecha, especialista)`; las versiones anteriores delegan con especialista nulo (la reprogramación de «Mis citas» las sigue usando sin filtro).
+  - Paso nuevo «profesional» en la cita (`bot_form_siguiente`, `bot_form_pregunta`, `bot_formulario`): «👨‍⚕️ ¿Con qué profesional quieres tu cita?», solo si hay 2 o más con horarios libres; con uno se asigna sin preguntar. Fechas y horas se filtran por el elegido.
+  - Ficha del servicio (`bot_nodo_resp`): «Profesional(es)» sale de los especialistas activos de la especialidad enlazada; `bot_nodos.profesional` queda como respaldo (los nombres cortos de odontología pasan a nombre completo, p. ej. «Dr. Jorge Riveros»).
+  - Las tres funciones grandes se modificaron con reemplazos puntuales verificados (cada texto original debía aparecer una sola vez); respaldo en [supabase/backups/20261125_bot_antes_de_22.sql](../supabase/backups/20261125_bot_antes_de_22.sql).
+- Verificado con [supabase/tests/11_bot_elegir_profesional.sql](../supabase/tests/11_bot_elegir_profesional.sql): **10/10 OK** (mismos 324 cupos que la agenda, permisos, conversación completa por `bot_responder` que agenda con Orquídea Chaparro, ficha con ambos nombres, Periodoncia sin pregunta). Sin datos residuales. Linter: sin avisos nuevos.
+- Límite conocido: si el horario se ocupa justo antes de confirmar, el bot vuelve a preguntar el profesional (antes volvía a la fecha).
+
+### Hallazgos sobre el motor del bot (25 nov) — sin cambios, para decidir
+- Después de la migración 21 alguien **reescribió el motor del bot fuera de las migraciones**: ya no existen `bot_book_appointment`, `bot_availability` ni `bot_list_specialties`. `bot_form_guardar` y `bot_gestion` (reprogramar) **insertan directo en `appointments`**, sin `agenda.book`/`agenda.reschedule`. Con eso se perdió lo de la migración 15: límite de 2 citas activas por teléfono, una cita activa por paciente y especialidad, idempotencia (la clave ahora es aleatoria), y no pisar datos de un paciente existente (depende de `bot_guardar_paciente`, no revisada). Además, si la reserva falla se guarda el texto del error de Postgres (`sqlerrm`) en `bot_solicitudes.motivo`. Lo que sigue protegiendo: `appointments_no_overlap` impide dos citas a la vez con el mismo especialista.
+- Linter: `public.revisar_inactividad()` es `SECURITY DEFINER` y la pueden ejecutar `anon` y `authenticated` por la API.
+
+### Reservas del bot otra vez con las reglas de la agenda (25 nov) — migración 23
+- **Decisión del usuario:** aplicar las protecciones de reserva, pero **quitar** dos reglas del canal WhatsApp: el límite de 2 citas activas por teléfono y «una cita activa por paciente y especialidad».
+- Migración 23 `bot_reservas_con_reglas_de_agenda` (aplicada por el MCP):
+  - `agenda.book_core(…, p_una_por_especialidad)`: el mismo código de `agenda.book` con esa regla opcional. `agenda.book` queda como envoltorio con la regla **activa**, así que el administrador (`admin_book_appointment`) no cambia.
+  - `public.bot_reservar_cita` (→ `agenda.book_core` sin la regla, origen `whatsapp`, mín. 2 h o más según `bot_config`, máx. 30 días) y `public.bot_reprogramar_cita` (verifica que el documento sea el dueño → `agenda.reschedule`). Ambas `SECURITY DEFINER`, solo `service_role`.
+  - `bot_form_guardar`: reserva con `bot_reservar_cita`; si el horario se ocupó vuelve a la fecha **conservando el profesional**; cualquier fallo deshace el paciente recién creado (SQLSTATE centinela `AG498`/`AG499`) y la solicitud de respaldo guarda «Error al agendar automáticamente» **sin** el texto de Postgres.
+  - `bot_form_iniciar`: cada formulario lleva una `clave` aleatoria; la cita usa `wa-<clave>` como clave de idempotencia (un mensaje repetido no duplica; una reserva nueva usa otra clave).
+  - `bot_gestion` reprograma con `bot_reprogramar_cita` (antes insertaba a mano) y `bot_gestion_pregunta` ofrece solo horarios del profesional de la cita (`agenda.reschedule` conserva el profesional).
+  - El límite por teléfono no se volvió a crear; `agenda.reservas_por_telefono` queda sin uso por el bot.
+  - `bot_guardar_paciente` revisada: ya no pisa nombres ni teléfono de un paciente existente (solo llena el teléfono si estaba vacío). Sin cambios.
+- Verificado con [supabase/tests/12_bot_reservas_reglas_agenda.sql](../supabase/tests/12_bot_reservas_reglas_agenda.sql): **13/13 OK** (2 citas de Psicología del mismo paciente por WhatsApp, 3.ª cita desde el mismo teléfono, reintento sin duplicar, horario ocupado, origen y clave, reprogramación con dueño y misma profesional, reserva fallida sin paciente residual ni texto de error, el administrador conserva su regla, permisos). Sin datos residuales.
+- Respaldo: [supabase/backups/20261125_bot_antes_de_23.sql](../supabase/backups/20261125_bot_antes_de_23.sql).
+- Sin cambios: la **cancelación** por WhatsApp (`bot_gestion`, paso `g_confirmar`) sigue actualizando la cita directamente (estado, fecha y motivo coherentes); se puede pasar a `agenda.cancel` si se quiere una sola regla también ahí.
+
+### Pestaña «Agenda pendiente» del administrador (25 nov) — migración 24 y frontend
+- **Pedido del usuario:** una pestaña con las personas que agendaron citas «abiertas» por el bot (eligen ellas mismas día y hora), para los servicios de salud sin especialistas: Fonoaudiología, Optometría y Fisioterapia.
+- Revisión de Supabase: el bot guarda esas citas en `bot_solicitudes` con `tipo = 'cita'` y la preferencia escrita en `preferencia`. El campo `motivo` distingue: «Sin agenda en línea» (servicio sin especialistas), «Atención a domicilio», «Error al agendar automáticamente» y reprogramaciones sin horarios (estas sin servicio del menú). Al 25 nov: 2 registros, ambos de Optometría, pendientes. **Se muestran todos los motivos**, porque todos necesitan que la fundación llame a confirmar.
+- Migración 24 `admin_agenda_pendiente` (aplicada por el MCP), sin tablas nuevas y sin tocar las `bot_*`: `agenda.servicios_cita_nodos()`, `public.admin_servicios_cita()` (catálogo con pendientes por servicio y si tiene agenda en línea) y `public.admin_citas_pendientes(servicio, estado, búsqueda)` (máx. 500, más recientes primero). Ambas exigen `is_admin()`; especialista → `forbidden`; `anon` sin acceso.
+- Verificado con [supabase/tests/13_admin_agenda_pendiente.sql](../supabase/tests/13_admin_agenda_pendiente.sql): **9/9 OK** (asesorías y urgencias no aparecen, filtros, búsqueda por documento con puntos, Fonoaudiología/Optometría/Fisioterapia marcadas sin agenda y primero, Psicología con agenda, permisos).
+- Frontend: menú «Agenda pendiente» (`/admin/agenda-pendiente`, ícono `pending_actions`), `features/admin/agenda-pendiente.ts` (catálogo en dos grupos: «Sin agenda en línea» y «Con agenda en línea»; clic en un servicio filtra; filtros de servicio, estado y nombre/documento; columna «Día y hora que pidió») y `detalle-cita-pendiente.ts`. 79/79 pruebas (6 nuevas) y compilación de producción correcta. Pendiente: revisarlo en el navegador.
+- **Cambio pedido por el usuario (25 nov):** se quitaron las tarjetas del catálogo («Sin agenda en línea» / «Con agenda en línea»); la pantalla queda con los filtros (el de «Servicio» se llena con `admin_servicios_cita`) y la tabla. 79/79 pruebas y compilación correcta.
+- **También en «Cursos» y «Asesorías» (pedido del usuario, 25 nov):** se quitaron las tarjetas del catálogo; quedan filtros y tabla. El catálogo ahora solo llena los filtros. Se borraron sus estilos `.catalogo*` y constantes sin uso. 78/78 pruebas y compilación correcta.
+- Solo lectura: el estado (pendiente, contactado, agendada, atendida, cancelada) se muestra pero no se cambia. Para agendar, el administrador crea la cita en «Agenda» (los servicios sin especialistas necesitan primero un especialista con horario).
+
+### Cambio de estado en «Agenda pendiente» (25 nov) — migración 25 y frontend
+- **Pedido del usuario:** el administrador debe poder cambiar el estado de cada solicitud (no tienen especialista) para saber cuáles ya gestionó y cuáles siguen pendientes.
+- Migración 25 `admin_estado_cita_pendiente` (aplicada por el MCP): `public.admin_cambiar_estado_cita_pendiente(id, estado_actual, estado)`, exige `is_admin()`, solo filas `tipo = 'cita'`, estados pendiente/contactado/agendada/atendida/cancelada. Si el estado ya cambió (otra persona o el paciente por WhatsApp) devuelve `status_changed` y no lo pisa. Solo actualiza la columna `estado`; no crea citas ni avisa al paciente; sin cambios en el código del bot.
+- Efecto en el bot: «Mis citas y trámites» solo muestra al paciente las solicitudes pendiente/contactado/agendada; las «atendida» y «cancelada» dejan de aparecerle. Si el paciente cambia la fecha preferida por WhatsApp, la solicitud vuelve a «pendiente».
+- Verificado con [supabase/tests/14_admin_estado_cita_pendiente.sql](../supabase/tests/14_admin_estado_cita_pendiente.sql): **8/8 OK**.
+- Frontend: selector «Estado de la gestión» y botón «Guardar estado» en el detalle; al guardar se cierra, avisa y recarga la lista. El título pasó a «Todas las solicitudes de cita». 84/84 pruebas y compilación correcta.
+
 ## Pendiente
+- Decidir si en «Agenda pendiente» el administrador puede escribir notas de la gestión y agendar directamente desde allí. (El cambio de estado ya está: migración 25.)
+- Decidir si la cancelación por WhatsApp pasa por `agenda.cancel` (hoy es una actualización directa en `bot_gestion`).
+- Revisar `revisar_inactividad()` (ejecutable sin sesión) con la persona que mantiene el bot.
+- Las migraciones 09–21, las pruebas 03–10 y `supabase/backups/` anteriores no están en el repositorio (nunca se subieron); recuperarlas del equipo donde se crearon.
 - Confirmar con la prueba por WhatsApp cómo guarda el bot el tipo de asesoría (`servicio_id`).
 - Decidir si el administrador puede cambiar el estado de una solicitud de asesoría y escribir notas (la tabla ya tiene `estado` y `notas`).
 - Decidir si el administrador puede cambiar el estado de una inscripción (pendiente → contactado → matriculado / cancelado) desde la pestaña Cursos, y si se necesita exportar los inscritos (por ejemplo a Excel).

@@ -245,6 +245,7 @@ export class Marco {
     this.auth.rol() === 'admin'
       ? [
           { ruta: '/admin/agenda', texto: 'Agenda', icono: 'event_note' },
+          { ruta: '/admin/agenda-pendiente', texto: 'Agenda pendiente', icono: 'pending_actions' },
           { ruta: '/admin/especialistas', texto: 'Especialistas', icono: 'groups' },
           { ruta: '/admin/horarios', texto: 'Horarios', icono: 'schedule' },
           { ruta: '/admin/cursos', texto: 'Cursos', icono: 'school' },

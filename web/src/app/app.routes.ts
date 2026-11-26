@@ -30,6 +30,11 @@ export const routes: Routes = [
       { path: 'horarios', title: 'Horarios · Agenda de citas', loadComponent: () => import('./features/admin/horarios').then((m) => m.Horarios) },
       { path: 'cursos', title: 'Cursos · Agenda de citas', loadComponent: () => import('./features/admin/cursos').then((m) => m.Cursos) },
       { path: 'asesorias', title: 'Asesorías · Agenda de citas', loadComponent: () => import('./features/admin/asesorias').then((m) => m.Asesorias) },
+      {
+        path: 'agenda-pendiente',
+        title: 'Agenda pendiente · Agenda de citas',
+        loadComponent: () => import('./features/admin/agenda-pendiente').then((m) => m.AgendaPendiente),
+      },
     ],
   },
   {

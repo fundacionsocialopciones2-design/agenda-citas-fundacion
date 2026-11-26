@@ -57,11 +57,11 @@ async function renderizar(solicitudes: SolicitudAsesoria[] = [solicitud()]) {
 }
 
 describe('Asesorias (administrador)', () => {
-  it('muestra las asesorías jurídicas y generales con sus solicitudes', async () => {
+  it('no muestra tarjetas de catálogo: solo filtros y tabla', async () => {
     const { html } = await renderizar();
-    const categorias = Array.from(html.querySelectorAll('.catalogo-categoria h2')).map((h) => h.textContent!.replace(/\s+/g, ' ').trim());
-    expect(categorias).toEqual(['Asesorías generales 1', 'Asesoría jurídica 2']);
-    expect(html.textContent).toContain('Simposios y bienestar empresarial');
+    expect(html.querySelector('.catalogo')).toBeNull();
+    expect(html.querySelector('form')).not.toBeNull();
+    expect(html.querySelector('table')).not.toBeNull();
   });
 
   it('al entrar trae todas las solicitudes', async () => {
@@ -71,11 +71,13 @@ describe('Asesorias (administrador)', () => {
     expect(html.querySelector('tbody tr')?.textContent).toContain('Ana Prueba');
   });
 
-  it('al elegir un tipo del catálogo filtra por él y por su categoría', async () => {
+  it('al elegir en el filtro y buscar, filtra por esa opción', async () => {
     const { html, api, fixture } = await renderizar();
-    const boton = Array.from(html.querySelectorAll<HTMLButtonElement>('button.catalogo-item')).find((b) => b.textContent?.includes('Derechos de petición'))!;
-    boton.click();
-    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenLastCalledWith({ servicioId: 'jur_peticion', categoriaId: 'juridica', estado: '', busqueda: '' }));
+    const select = html.querySelector<HTMLSelectElement>('#f-tipo')!;
+    select.value = 'jur_peticion';
+    select.dispatchEvent(new Event('change'));
+    html.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
+    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenLastCalledWith({ servicioId: 'jur_peticion', categoriaId: '', estado: '', busqueda: '' }));
     await fixture.whenStable();
     fixture.detectChanges();
     expect(html.querySelector('#t-solicitudes')?.textContent).toContain('Solicitudes de Derechos de petición');

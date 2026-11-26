@@ -154,9 +154,6 @@ export const ETIQUETA_INSCRIPCION: Record<EstadoInscripcion, string> = {
   cancelado: 'Cancelado',
 };
 
-/** Id especial para las inscripciones cuyo curso ya no existe en el menú del bot. */
-export const SIN_CURSO = '__sin_curso';
-
 /** Un curso del catálogo (admin_cursos). La categoría es la rama del menú; el grupo, un submenú intermedio. */
 export interface Curso {
   curso_id: string;
@@ -206,9 +203,6 @@ export const ETIQUETA_SOLICITUD: Record<EstadoSolicitud, string> = {
   cancelada: 'Cancelada',
 };
 
-/** Id especial para las solicitudes cuyo servicio ya no existe en el menú del bot. */
-export const SIN_SERVICIO = '__sin_servicio';
-
 /** Un tipo de asesoría (admin_asesorias). La categoría es la rama del menú (jurídica o generales). */
 export interface TipoAsesoria {
   servicio_id: string;
@@ -245,6 +239,48 @@ export interface SolicitudAsesoria {
 export interface FiltrosAsesorias {
   servicioId: string;
   categoriaId: string;
+  estado: EstadoSolicitud | '';
+  busqueda: string;
+}
+
+// ---------- Agenda pendiente (citas «abiertas» que el bot guarda cuando no puede agendar en línea) ----------
+/** Un servicio de salud del menú del bot (admin_servicios_cita). `agenda_en_linea` = tiene especialistas con horario. */
+export interface ServicioCita {
+  servicio_id: string;
+  titulo: string;
+  grupo: string | null;
+  activo: boolean;
+  agenda_en_linea: boolean;
+  solicitudes: number;
+  pendientes: number;
+}
+
+/** Una cita abierta (admin_citas_pendientes): la persona escribió el día y la hora que prefiere (`preferencia`). */
+export interface CitaPendiente {
+  id: number;
+  creado: string;
+  servicio_id: string | null;
+  servicio: string;
+  grupo: string | null;
+  nombre_completo: string;
+  tipo_documento: string | null;
+  numero_documento: string | null;
+  telefono: string;
+  telefono_contacto: string | null;
+  correo: string | null;
+  modalidad: string | null;
+  direccion: string | null;
+  detalle: string | null;
+  preferencia: string | null;
+  /** Por qué no se agendó en línea (sin agenda, a domicilio, reprogramación sin horarios…). */
+  motivo: string | null;
+  estado: EstadoSolicitud;
+  notas: string | null;
+  autoriza_datos_at: string;
+}
+
+export interface FiltrosCitasPendientes {
+  servicioId: string;
   estado: EstadoSolicitud | '';
   busqueda: string;
 }

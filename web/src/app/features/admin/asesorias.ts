@@ -1,10 +1,9 @@
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
-import { MatIconModule } from '@angular/material/icon';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
-import { ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosAsesorias, SIN_SERVICIO, SolicitudAsesoria, TipoAsesoria } from '../../core/models';
+import { ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosAsesorias, SolicitudAsesoria, TipoAsesoria } from '../../core/models';
 import { fechaBogota } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
@@ -19,54 +18,15 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
  */
 @Component({
   selector: 'app-asesorias',
-  imports: [MatButtonModule, MatIconModule, Estado],
+  imports: [MatButtonModule, Estado],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
         <div>
           <h1>Asesorías</h1>
-          <p>Asesorías jurídicas y generales que ofrece el chatbot, y las solicitudes que llegaron por WhatsApp. Elige un tipo para ver sus solicitudes.</p>
+          <p>Asesorías jurídicas y generales que ofrece el chatbot, y las solicitudes que llegaron por WhatsApp.</p>
         </div>
       </div>
-
-      @switch (estadoCatalogo()) {
-        @case ('cargando') {
-          <app-estado tipo="cargando" titulo="Cargando asesorías…" />
-        }
-        @case ('error') {
-          <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="cargarCatalogo()" />
-        }
-        @default {
-          <section class="catalogo" aria-label="Tipos de asesoría">
-            @for (g of categorias(); track g.nombre) {
-              <article class="tarjeta catalogo-categoria">
-                <h2>{{ g.nombre }} <span class="contador" [attr.aria-label]="g.total + ' solicitudes'">{{ g.total }}</span></h2>
-                <ul class="catalogo-lista">
-                  @for (t of g.elementos; track t.servicio_id) {
-                    <li>
-                      <button
-                        type="button"
-                        class="catalogo-item"
-                        [class.catalogo-item--vacio]="t.solicitudes === 0"
-                        [attr.aria-pressed]="filtros().servicioId === t.servicio_id"
-                        (click)="elegirTipo(t)"
-                      >
-                        <span class="catalogo-item__texto">
-                          <span class="catalogo-item__titulo">{{ t.titulo }}</span>
-                          @if (t.grupo || !t.activo) {
-                            <span class="catalogo-item__nota">{{ t.grupo }}{{ t.grupo && !t.activo ? ' · ' : '' }}{{ t.activo ? '' : 'No disponible en el menú' }}</span>
-                          }
-                        </span>
-                        <span class="catalogo-item__cifra">{{ t.solicitudes }}<span class="solo-lectores"> {{ t.solicitudes === 1 ? 'solicitud' : 'solicitudes' }}</span></span>
-                      </button>
-                    </li>
-                  }
-                </ul>
-              </article>
-            }
-          </section>
-        }
-      }
 
       <form class="tarjeta" (submit)="$event.preventDefault(); buscar()" aria-label="Filtros de solicitudes">
         <div class="fila">
@@ -109,13 +69,13 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
       </form>
 
       <section aria-labelledby="t-solicitudes">
-        <h2 id="t-solicitudes" class="titulo-resultados" tabindex="-1" #encabezadoResultados>{{ tituloResultados() }}</h2>
+        <h2 id="t-solicitudes" class="titulo-resultados">{{ tituloResultados() }}</h2>
         @switch (estado()) {
           @case ('cargando') {
             <app-estado tipo="cargando" titulo="Cargando solicitudes…" />
           }
           @case ('error') {
-            <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="buscar()" />
+            <app-estado tipo="error" [mensaje]="mensajeError()" (reintentar)="recargar()" />
           }
           @default {
             @if (solicitudes().length === 0) {
@@ -175,14 +135,12 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
 export class Asesorias {
   private readonly api = inject(AgendaApi);
   private readonly dialog = inject(MatDialog);
-  private readonly encabezado = viewChild<ElementRef<HTMLElement>>('encabezadoResultados');
 
   protected readonly valor = valorDe;
   protected readonly fecha = fechaBogota;
   protected readonly etiqueta = ETIQUETA_SOLICITUD;
   protected readonly estados = (Object.keys(ETIQUETA_SOLICITUD) as EstadoSolicitud[]).map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] }));
 
-  protected readonly estadoCatalogo = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly mensajeError = signal('');
   protected readonly catalogo = signal<TipoAsesoria[]>([]);
@@ -206,18 +164,20 @@ export class Asesorias {
   });
 
   constructor() {
+    this.recargar();
+  }
+
+  protected recargar(): void {
     void this.cargarCatalogo();
     void this.buscar();
   }
 
-  protected async cargarCatalogo(): Promise<void> {
-    this.estadoCatalogo.set('cargando');
+  /** Opciones de los filtros. Si fallan, la tabla sigue funcionando con «Todos». */
+  private async cargarCatalogo(): Promise<void> {
     try {
       this.catalogo.set(await this.api.asesorias());
-      this.estadoCatalogo.set('listo');
-    } catch (e) {
-      this.mensajeError.set(mensajeDeError(e));
-      this.estadoCatalogo.set('error');
+    } catch {
+      this.catalogo.set([]);
     }
   }
 
@@ -245,18 +205,6 @@ export class Asesorias {
       const conserva = !categoriaId || tipo?.categoria_id === categoriaId;
       return { ...f, categoriaId, servicioId: conserva ? f.servicioId : '' };
     });
-  }
-
-  /** Clic en un tipo del catálogo: lo filtra (o lo quita si ya estaba elegido) y lleva el foco a los resultados. */
-  protected async elegirTipo(t: TipoAsesoria): Promise<void> {
-    const yaElegido = this.filtros().servicioId === t.servicio_id;
-    this.filtros.update((f) => ({
-      ...f,
-      servicioId: yaElegido ? '' : t.servicio_id,
-      categoriaId: yaElegido || t.servicio_id === SIN_SERVICIO ? '' : (t.categoria_id ?? ''),
-    }));
-    await this.buscar();
-    this.encabezado()?.nativeElement.focus();
   }
 
   protected limpiar(): void {
