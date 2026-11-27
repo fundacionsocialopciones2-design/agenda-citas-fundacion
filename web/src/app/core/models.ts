@@ -35,6 +35,21 @@ export interface Invitacion {
   expires_at: string;
 }
 
+/** Pestañas de Cursos y Asesorías. Qué estados entran en cada una lo decide la base de datos (migración 30). */
+export type VistaGestion = 'por_confirmar' | 'confirmados' | 'cancelados';
+
+export interface CifrasGestion {
+  por_confirmar: number;
+  confirmados: number;
+  cancelados: number;
+}
+
+/** Cifras de las pestañas (admin_conteo_gestion). */
+export interface ConteoGestion {
+  inscripciones: CifrasGestion;
+  asesorias: CifrasGestion;
+}
+
 export interface HorarioSemanal {
   id?: string;
   specialist_id?: string;
@@ -192,6 +207,7 @@ export interface Inscripcion {
 }
 
 export interface FiltrosInscripciones {
+  vista: VistaGestion;
   cursoId: string;
   categoriaId: string;
   estado: EstadoInscripcion | '';
@@ -243,6 +259,7 @@ export interface SolicitudAsesoria {
 }
 
 export interface FiltrosAsesorias {
+  vista: VistaGestion;
   servicioId: string;
   categoriaId: string;
   estado: EstadoSolicitud | '';

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AgendaApi } from '../../core/agenda.api';
 import { Curso, Inscripcion } from '../../core/models';
 import { Cursos } from './cursos';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 const curso = (extra: Partial<Curso>): Curso => ({
   curso_id: 'id_ingles',
@@ -42,8 +43,13 @@ const inscripcion = (extra: Partial<Inscripcion> = {}): Inscripcion => ({
 });
 
 async function renderizar(inscritos: Inscripcion[] = [inscripcion()]) {
-  const api = { cursos: vi.fn().mockResolvedValue(CATALOGO), inscripciones: vi.fn().mockResolvedValue(inscritos) };
-  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }] });
+  const api = {
+    cursos: vi.fn().mockResolvedValue(CATALOGO),
+    inscripciones: vi.fn().mockResolvedValue(inscritos),
+    conteoGestion: vi.fn().mockResolvedValue({ inscripciones: { por_confirmar: 3, confirmados: 2, cancelados: 1 }, asesorias: { por_confirmar: 4, confirmados: 5, cancelados: 0 } }),
+    cambiarEstadoInscripcion: vi.fn().mockResolvedValue(undefined),
+  };
+  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }, { provide: MatSnackBar, useValue: { open: vi.fn() } }] });
   const fixture = TestBed.createComponent(Cursos);
   await fixture.whenStable();
   fixture.detectChanges();
@@ -61,8 +67,8 @@ describe('Cursos (administrador)', () => {
 
   it('al entrar trae todas las inscripciones y las muestra en la tabla', async () => {
     const { html, api } = await renderizar();
-    expect(api.inscripciones).toHaveBeenCalledWith({ cursoId: '', categoriaId: '', estado: '', busqueda: '' });
-    expect(html.querySelector('#t-inscritos')?.textContent).toContain('Todas las personas inscritas');
+    expect(api.inscripciones).toHaveBeenCalledWith({ vista: 'por_confirmar', cursoId: '', categoriaId: '', estado: '', busqueda: '' });
+    expect(html.querySelector('#t-inscritos')?.textContent).toContain('Personas por confirmar');
     expect(html.querySelector('.fila-lista')?.textContent).toContain('Ana Prueba');
     expect(html.querySelector('.fila-lista')?.textContent).toContain('Pendiente');
   });
@@ -73,7 +79,7 @@ describe('Cursos (administrador)', () => {
     select.value = 'seg_drones';
     select.dispatchEvent(new Event('change'));
     html.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
-    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ cursoId: 'seg_drones', categoriaId: '', estado: '', busqueda: '' }));
+    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ vista: 'por_confirmar', cursoId: 'seg_drones', categoriaId: '', estado: '', busqueda: '' }));
     await fixture.whenStable();
     fixture.detectChanges();
     expect(html.querySelector('#t-inscritos')?.textContent).toContain('Inscritos en Operador de dron');
@@ -91,7 +97,36 @@ describe('Cursos (administrador)', () => {
 
   it('sin resultados muestra un mensaje vacío', async () => {
     const { html } = await renderizar([]);
-    expect(html.textContent).toContain('No hay inscritos con estos filtros');
+    expect(html.textContent).toContain('No hay nada por confirmar');
+  });
+
+  it('tiene pestañas con su cifra y entra por «Por confirmar»', async () => {
+    const { html } = await renderizar();
+    const pestanas = Array.from(html.querySelectorAll('app-pestanas-gestion button')).map((b) => b.textContent?.replace(/\s+/g, ' ').trim());
+    expect(pestanas).toEqual(['Por confirmar 3', 'Confirmados 2', 'Cancelados 1']);
+    expect(Array.from(html.querySelectorAll<HTMLOptionElement>('#f-est option')).map((o) => o.value)).toEqual(['', 'pendiente', 'contactado']);
+  });
+
+  it('«Confirmados» consulta esa vista y no ofrece filtro de estado', async () => {
+    const { html, api, fixture } = await renderizar();
+    html.querySelectorAll<HTMLButtonElement>('app-pestanas-gestion button')[1].click();
+    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenLastCalledWith({ vista: 'confirmados', cursoId: '', categoriaId: '', estado: '', busqueda: '' }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(html.querySelector('#f-est')).toBeNull();
+    expect(html.querySelector('#t-inscritos')?.textContent).toContain('Personas confirmadas');
+  });
+
+  it('cambia el estado desde el panel y vuelve a consultar la lista y las cifras', async () => {
+    const { html, api, fixture } = await renderizar();
+    const select = html.querySelector<HTMLSelectElement>('#g-estado')!;
+    select.value = 'matriculado';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    html.querySelector<HTMLFormElement>('app-gestion-estado form')!.dispatchEvent(new Event('submit'));
+    await vi.waitFor(() => expect(api.inscripciones).toHaveBeenCalledTimes(2));
+    expect(api.cambiarEstadoInscripcion).toHaveBeenCalledWith(1, 'pendiente', 'matriculado');
+    expect(api.conteoGestion).toHaveBeenCalledTimes(2);
   });
 
   it('muestra al lado el detalle de la primera, sin tablas ni ventanas', async () => {

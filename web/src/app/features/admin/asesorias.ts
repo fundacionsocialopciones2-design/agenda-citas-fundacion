@@ -1,16 +1,17 @@
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
-import { ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosAsesorias, SolicitudAsesoria, TipoAsesoria } from '../../core/models';
+import { CifrasGestion, ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosAsesorias, SolicitudAsesoria, TipoAsesoria, VistaGestion } from '../../core/models';
 import { fechaBogota } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
 import { agruparPorCategoria } from './agrupar-catalogo';
 import { DetalleSolicitud } from './detalle-solicitud';
 import { FilaLista, ListaDetalle } from './lista-detalle';
+import { ESTADOS_ASESORIA, PestanasGestion, VACIO_GESTION, vistaDe } from './pestanas-gestion';
 
-const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado: '', busqueda: '' };
+const SIN_FILTROS: FiltrosAsesorias = { vista: 'por_confirmar', servicioId: '', categoriaId: '', estado: '', busqueda: '' };
 
 /**
  * Asesorías jurídicas y generales que ofrece el chatbot (catálogo = menú del bot) y las solicitudes hechas
@@ -18,18 +19,27 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
  */
 @Component({
   selector: 'app-asesorias',
-  imports: [MatButtonModule, Estado, ListaDetalle, DetalleSolicitud],
+  imports: [MatButtonModule, Estado, ListaDetalle, PestanasGestion, DetalleSolicitud],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
         <div>
           <h1>Asesorías</h1>
-          <p>Asesorías jurídicas y generales que ofrece el chatbot, y las solicitudes que llegaron por WhatsApp.</p>
+          <p>Asesorías jurídicas y generales que ofrece el chatbot, y las solicitudes que llegaron por WhatsApp. Cambia su estado cuando las gestiones.</p>
         </div>
       </div>
 
+      <app-pestanas-gestion
+        [etiqueta]="'Asesorías por estado'"
+        [textos]="textosPestanas"
+        [cifras]="cifras()"
+        [vista]="filtros().vista"
+        [bloqueada]="bloqueado()"
+        (elegida)="cambiarVista($event)"
+      />
+
       <form class="tarjeta" (submit)="$event.preventDefault(); buscar()" aria-label="Filtros de solicitudes">
-        <div class="fila">
+        <div class="fila fila--filtros">
           <div class="campo" style="margin: 0">
             <label for="f-cat">Categoría</label>
             <select id="f-cat" (change)="cambiarCategoria(valor($event))">
@@ -48,23 +58,25 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
               }
             </select>
           </div>
-          <div class="campo" style="margin: 0">
-            <label for="f-est">Estado</label>
-            <select id="f-est" (change)="cambiar('estado', valor($event))">
-              <option value="" [selected]="!filtros().estado">Todos</option>
-              @for (e of estados; track e.valor) {
-                <option [value]="e.valor" [selected]="filtros().estado === e.valor">{{ e.texto }}</option>
-              }
-            </select>
-          </div>
+          @if (estados().length > 1) {
+            <div class="campo" style="margin: 0">
+              <label for="f-est">Estado</label>
+              <select id="f-est" (change)="cambiar('estado', valor($event))">
+                <option value="" [selected]="!filtros().estado">Todos</option>
+                @for (e of estados(); track e.valor) {
+                  <option [value]="e.valor" [selected]="filtros().estado === e.valor">{{ e.texto }}</option>
+                }
+              </select>
+            </div>
+          }
           <div class="campo" style="margin: 0">
             <label for="f-buscar">Nombre o documento</label>
             <input id="f-buscar" type="search" autocomplete="off" [value]="filtros().busqueda" (input)="cambiar('busqueda', valor($event))" />
           </div>
-        </div>
-        <div class="acciones" style="margin-top: 12px">
-          <button mat-flat-button type="submit" [disabled]="estado() === 'cargando'">Buscar</button>
-          <button mat-button type="button" (click)="limpiar()">Limpiar filtros</button>
+          <div class="acciones">
+            <button mat-flat-button type="submit" [disabled]="estado() === 'cargando'">Buscar</button>
+            <button mat-button type="button" (click)="limpiar()">Limpiar filtros</button>
+          </div>
         </div>
       </form>
 
@@ -79,15 +91,15 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
           }
           @default {
             @if (solicitudes().length === 0) {
-              <app-estado icono="gavel" titulo="No hay solicitudes con estos filtros" mensaje="Cuando alguien pida una asesoría por WhatsApp, aparecerá aquí." />
+              <app-estado [icono]="vacio().icono" [titulo]="vacio().titulo" [mensaje]="vacio().mensaje" />
             } @else {
-              <p class="ayuda">
+              <p class="ayuda conteo">
                 {{ solicitudes().length }} {{ solicitudes().length === 1 ? 'solicitud' : 'solicitudes' }}{{ solicitudes().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
               </p>
-              <app-lista-detalle etiqueta="Solicitudes de asesoría" [filas]="filas()" [(seleccion)]="seleccion">
+              <app-lista-detalle etiqueta="Solicitudes de asesoría" [filas]="filas()" [bloqueada]="bloqueado()" [(seleccion)]="seleccion">
                 <ng-template let-id>
                   @if (porId().get(id); as r) {
-                    <app-detalle-solicitud [solicitud]="r" />
+                    <app-detalle-solicitud [solicitud]="r" (cambiada)="alCambiar()" />
                   }
                 </ng-template>
               </app-lista-detalle>
@@ -105,7 +117,13 @@ export class Asesorias implements OnInit {
   readonly filtroEstado = input<string | undefined>(undefined, { alias: 'estado' });
 
   protected readonly valor = valorDe;
-  protected readonly estados = (Object.keys(ETIQUETA_SOLICITUD) as EstadoSolicitud[]).map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] }));
+  protected readonly estados = computed(() => ESTADOS_ASESORIA[this.filtros().vista].map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] })));
+  protected readonly textosPestanas = { por_confirmar: 'Por confirmar', confirmados: 'Confirmadas', cancelados: 'Canceladas' };
+  private readonly conteo = signal<CifrasGestion | null>(null);
+  protected readonly cifras = this.conteo.asReadonly();
+  protected readonly vacio = computed(() => VACIO_GESTION[this.filtros().vista]);
+  private readonly detalle = viewChild(DetalleSolicitud);
+  protected readonly bloqueado = computed(() => this.detalle()?.ocupado() ?? false);
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly mensajeError = signal('');
@@ -126,7 +144,7 @@ export class Asesorias implements OnInit {
     const f = this.aplicados();
     if (f.servicioId) return `Solicitudes de ${this.catalogo().find((t) => t.servicio_id === f.servicioId)?.titulo ?? 'la asesoría elegida'}`;
     if (f.categoriaId) return `Solicitudes de ${this.categorias().find((g) => g.id === f.categoriaId)?.nombre ?? 'la categoría elegida'}`;
-    return 'Todas las solicitudes de asesoría';
+    return { por_confirmar: 'Solicitudes por confirmar', confirmados: 'Solicitudes confirmadas', cancelados: 'Solicitudes canceladas' }[f.vista];
   });
 
   protected readonly seleccion = signal<number | null>(null);
@@ -144,12 +162,15 @@ export class Asesorias implements OnInit {
 
   ngOnInit(): void {
     const estado = this.filtroEstado();
-    if (estado && estado in ETIQUETA_SOLICITUD) this.cambiar('estado', estado);
+    if (estado && estado in ETIQUETA_SOLICITUD) {
+      this.filtros.update((f) => ({ ...f, estado: estado as EstadoSolicitud, vista: vistaDe(ESTADOS_ASESORIA, estado) }));
+    }
     this.recargar();
   }
 
   protected recargar(): void {
     void this.cargarCatalogo();
+    void this.cargarCifras();
     void this.buscar();
   }
 
@@ -162,9 +183,31 @@ export class Asesorias implements OnInit {
     }
   }
 
-  protected async buscar(): Promise<void> {
-    const f = this.filtros();
-    this.estado.set('cargando');
+  /** Cifras de las pestañas. Si fallan, las pestañas se muestran sin número. */
+  private async cargarCifras(): Promise<void> {
+    try {
+      this.conteo.set((await this.api.conteoGestion()).asesorias);
+    } catch {
+      this.conteo.set(null);
+    }
+  }
+
+  protected cambiarVista(vista: VistaGestion): void {
+    if (vista === this.filtros().vista) return;
+    this.filtros.update((f) => ({ ...f, vista, estado: '' }));
+    this.seleccion.set(null);
+    void this.buscar();
+  }
+
+  protected alCambiar(): void {
+    void this.buscar(true);
+    void this.cargarCifras();
+  }
+
+  /** `silencioso`: conserva lo que se ve y los filtros aplicados (tras guardar un estado). */
+  protected async buscar(silencioso = false): Promise<void> {
+    const f = silencioso ? this.aplicados() : this.filtros();
+    if (!silencioso) this.estado.set('cargando');
     try {
       this.solicitudes.set(await this.api.solicitudesAsesoria(f));
       this.aplicados.set(f);
@@ -189,7 +232,7 @@ export class Asesorias implements OnInit {
   }
 
   protected limpiar(): void {
-    this.filtros.set(SIN_FILTROS);
+    this.filtros.update((f) => ({ ...SIN_FILTROS, vista: f.vista }));
     void this.buscar();
   }
 }

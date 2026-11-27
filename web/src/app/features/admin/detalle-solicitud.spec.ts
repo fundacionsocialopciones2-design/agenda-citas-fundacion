@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, expect, it } from 'vitest';
+import { AgendaApi } from '../../core/agenda.api';
 import { SolicitudAsesoria } from '../../core/models';
 import { DetalleSolicitud } from './detalle-solicitud';
 
@@ -26,6 +28,7 @@ const solicitud = (extra: Partial<SolicitudAsesoria> = {}): SolicitudAsesoria =>
 });
 
 function renderizar(s: SolicitudAsesoria): HTMLElement {
+  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: {} }, { provide: MatSnackBar, useValue: {} }] });
   const fixture = TestBed.createComponent(DetalleSolicitud);
   fixture.componentRef.setInput('solicitud', s);
   fixture.detectChanges();

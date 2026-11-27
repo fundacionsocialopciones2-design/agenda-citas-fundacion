@@ -24,6 +24,7 @@ Nested `CLAUDE.md` files hold area-specific guidance and load when you work in t
 | Migration workflow | `supabase/migrations/CLAUDE.md` |
 | SQL test scripts | `supabase/tests/CLAUDE.md` |
 | Edge Function `admin-users` | `supabase/functions/admin-users/CLAUDE.md` |
+| Edge Function `invitacion-especialista` (public) | `supabase/functions/invitacion-especialista/CLAUDE.md` |
 
 ## Project-wide conventions
 

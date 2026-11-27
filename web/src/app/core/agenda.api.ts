@@ -4,6 +4,7 @@ import { ErrorApi, ErrorConflicto, MENSAJES_AGENDA } from './errores';
 import {
   Bloqueo,
   Cita,
+  ConteoGestion,
   CitaEspecialista,
   CitaPendiente,
   Cupo,
@@ -11,6 +12,7 @@ import {
   Especialidad,
   Especialista,
   EstadoCita,
+  EstadoInscripcion,
   EstadoSolicitud,
   FiltrosAsesorias,
   FiltrosCitas,
@@ -114,6 +116,27 @@ export class AgendaApi {
 
   cambiarEstadoEspecialista(specialistId: string, activo: boolean): Promise<void> {
     return this.adminUsuarios('set_active', { specialist_id: specialistId, active: activo });
+  }
+
+  // ---------- Gestión de inscripciones y asesorías (las funciones exigen is_admin()) ----------
+  async conteoGestion(): Promise<ConteoGestion> {
+    return this.datos(await this.sb.rpc('admin_conteo_gestion')) as ConteoGestion;
+  }
+
+  async cambiarEstadoInscripcion(id: number, estadoActual: EstadoInscripcion, estado: EstadoInscripcion): Promise<void> {
+    this.verificar(
+      this.datos(
+        await this.sb.rpc('admin_cambiar_estado_inscripcion', { p_id: id, p_estado_actual: estadoActual, p_estado: estado }),
+      ) as RespuestaRpc,
+    );
+  }
+
+  async cambiarEstadoAsesoria(id: number, estadoActual: EstadoSolicitud, estado: EstadoSolicitud): Promise<void> {
+    this.verificar(
+      this.datos(
+        await this.sb.rpc('admin_cambiar_estado_asesoria', { p_id: id, p_estado_actual: estadoActual, p_estado: estado }),
+      ) as RespuestaRpc,
+    );
   }
 
   // ---------- Invitaciones de acceso para especialistas (las funciones admin_* exigen is_admin()) ----------
@@ -279,6 +302,7 @@ export class AgendaApi {
         p_categoria_id: f.categoriaId || null,
         p_estado: f.estado || null,
         p_busqueda: f.busqueda.trim() || null,
+        p_vista: f.vista,
       }),
     ) as Inscripcion[];
   }
@@ -295,6 +319,7 @@ export class AgendaApi {
         p_categoria_id: f.categoriaId || null,
         p_estado: f.estado || null,
         p_busqueda: f.busqueda.trim() || null,
+        p_vista: f.vista,
       }),
     ) as SolicitudAsesoria[];
   }

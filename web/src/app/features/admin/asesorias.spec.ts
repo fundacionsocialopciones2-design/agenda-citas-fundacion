@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AgendaApi } from '../../core/agenda.api';
 import { SolicitudAsesoria, TipoAsesoria } from '../../core/models';
 import { Asesorias } from './asesorias';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 const tipo = (extra: Partial<TipoAsesoria>): TipoAsesoria => ({
   servicio_id: 'jur_peticion',
@@ -45,8 +46,13 @@ const solicitud = (extra: Partial<SolicitudAsesoria> = {}): SolicitudAsesoria =>
 });
 
 async function renderizar(solicitudes: SolicitudAsesoria[] = [solicitud()]) {
-  const api = { asesorias: vi.fn().mockResolvedValue(CATALOGO), solicitudesAsesoria: vi.fn().mockResolvedValue(solicitudes) };
-  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }] });
+  const api = {
+    asesorias: vi.fn().mockResolvedValue(CATALOGO),
+    solicitudesAsesoria: vi.fn().mockResolvedValue(solicitudes),
+    conteoGestion: vi.fn().mockResolvedValue({ inscripciones: { por_confirmar: 3, confirmados: 2, cancelados: 1 }, asesorias: { por_confirmar: 4, confirmados: 5, cancelados: 0 } }),
+    cambiarEstadoAsesoria: vi.fn().mockResolvedValue(undefined),
+  };
+  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }, { provide: MatSnackBar, useValue: { open: vi.fn() } }] });
   const fixture = TestBed.createComponent(Asesorias);
   await fixture.whenStable();
   fixture.detectChanges();
@@ -63,8 +69,8 @@ describe('Asesorias (administrador)', () => {
 
   it('al entrar trae todas las solicitudes', async () => {
     const { html, api } = await renderizar();
-    expect(api.solicitudesAsesoria).toHaveBeenCalledWith({ servicioId: '', categoriaId: '', estado: '', busqueda: '' });
-    expect(html.querySelector('#t-solicitudes')?.textContent).toContain('Todas las solicitudes de asesoría');
+    expect(api.solicitudesAsesoria).toHaveBeenCalledWith({ vista: 'por_confirmar', servicioId: '', categoriaId: '', estado: '', busqueda: '' });
+    expect(html.querySelector('#t-solicitudes')?.textContent).toContain('Solicitudes por confirmar');
     expect(html.querySelector('.fila-lista')?.textContent).toContain('Ana Prueba');
   });
 
@@ -74,16 +80,32 @@ describe('Asesorias (administrador)', () => {
     select.value = 'jur_peticion';
     select.dispatchEvent(new Event('change'));
     html.querySelector<HTMLButtonElement>('button[type="submit"]')!.click();
-    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenLastCalledWith({ servicioId: 'jur_peticion', categoriaId: '', estado: '', busqueda: '' }));
+    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenLastCalledWith({ vista: 'por_confirmar', servicioId: 'jur_peticion', categoriaId: '', estado: '', busqueda: '' }));
     await fixture.whenStable();
     fixture.detectChanges();
     expect(html.querySelector('#t-solicitudes')?.textContent).toContain('Solicitudes de Derechos de petición');
   });
 
-  it('el filtro de estado ofrece los cinco estados de una solicitud', async () => {
-    const { html } = await renderizar();
-    const opciones = Array.from(html.querySelectorAll<HTMLOptionElement>('#f-est option')).map((o) => o.textContent?.trim());
-    expect(opciones).toEqual(['Todos', 'Pendiente', 'Contactado', 'Agendada', 'Atendida', 'Cancelada']);
+  it('cada pestaña ofrece solo sus estados', async () => {
+    const { html, api, fixture } = await renderizar();
+    const opciones = () => Array.from(html.querySelectorAll<HTMLOptionElement>('#f-est option')).map((o) => o.textContent?.trim());
+    expect(opciones()).toEqual(['Todos', 'Pendiente', 'Contactado']);
+    html.querySelectorAll<HTMLButtonElement>('app-pestanas-gestion button')[1].click();
+    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenLastCalledWith({ vista: 'confirmados', servicioId: '', categoriaId: '', estado: '', busqueda: '' }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(opciones()).toEqual(['Todos', 'Agendada', 'Atendida']);
+  });
+
+  it('cambia el estado desde el panel', async () => {
+    const { html, api, fixture } = await renderizar();
+    const select = html.querySelector<HTMLSelectElement>('#g-estado')!;
+    select.value = 'agendada';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    html.querySelector<HTMLFormElement>('app-gestion-estado form')!.dispatchEvent(new Event('submit'));
+    await vi.waitFor(() => expect(api.solicitudesAsesoria).toHaveBeenCalledTimes(2));
+    expect(api.cambiarEstadoAsesoria).toHaveBeenCalledWith(1, 'pendiente', 'agendada');
   });
 
   it('una solicitud sin documento no muestra un documento vacío', async () => {
@@ -96,7 +118,7 @@ describe('Asesorias (administrador)', () => {
 
   it('sin solicitudes muestra un mensaje vacío', async () => {
     const { html } = await renderizar([]);
-    expect(html.textContent).toContain('No hay solicitudes con estos filtros');
+    expect(html.textContent).toContain('No hay nada por confirmar');
   });
 
   it('muestra al lado el detalle de la primera, sin tablas ni ventanas', async () => {

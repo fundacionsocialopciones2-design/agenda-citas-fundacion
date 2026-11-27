@@ -271,7 +271,45 @@ Código: `core/` (modelos, sesión, guards, acceso a datos), `shared/` (marco, e
 - Verificado con [supabase/tests/14_admin_estado_cita_pendiente.sql](../supabase/tests/14_admin_estado_cita_pendiente.sql): **8/8 OK**.
 - Frontend: selector «Estado de la gestión» y botón «Guardar estado» en el detalle; al guardar se cierra, avisa y recarga la lista. El título pasó a «Todas las solicitudes de cita». 84/84 pruebas y compilación correcta.
 
+### Pestaña «Urgencias» del administrador (26 nov) — migración 26 y frontend
+- **Pedido del usuario:** ver todas las urgencias reportadas por el bot con los datos de la persona, para atenderlas. Eligió: tarjetas de atención; las atendidas y canceladas pasan a un «Historial»; contador en el menú y notas de seguimiento; el aviso por fuera del dashboard queda para otra fase; el registro de «quién y cuándo atendió» (tabla nueva) se pospone.
+- Revisión: las urgencias se guardan en `bot_solicitudes` (`tipo = 'urgencia'`, prioridad alta). Al 26 nov hay 1 real pendiente desde el 4 nov. No existe ningún aviso cuando llega una.
+- Migración 26 `admin_urgencias` (aplicada por el MCP), sin tablas nuevas y sin tocar el código del bot: `admin_urgencias(vista, búsqueda)` (por atender: sin atender primero y la que más espera; historial: recientes primero; máx. 500), `admin_urgencias_resumen()`, `admin_cambiar_estado_urgencia` y `admin_agregar_nota_urgencia` (agrega «fecha · autor: texto» a `notas`, máx. 500 caracteres, sin reemplazar). La regla de cambio de estado quedó única en `agenda.cambiar_estado_solicitud` (la usa también Agenda pendiente). Todas exigen `is_admin()`.
+- Verificado con [supabase/tests/15_admin_urgencias.sql](../supabase/tests/15_admin_urgencias.sql): **10/10 OK**.
+- Frontend: menú «Urgencias» (`/admin/urgencias`) con contador de sin atender (se consulta cada minuto; no impide el cierre por inactividad; en móvil aparece sobre ☰); tarjetas con espera, síntomas, atención/dirección, última nota, «Llamar», «WhatsApp» y «Ver y gestionar»; vista Historial con búsqueda. 105/105 pruebas y compilación correcta. Pendiente: revisarlo en el navegador.
+- Como «atendida» y «cancelada» dejan de salir en «Mis citas y trámites» del bot, la persona deja de ver su reporte al cerrarlo.
+
+### «Urgencias»: diseño lista + detalle (26 nov) — migración 27 y frontend
+- **Pedido del usuario:** con muchas urgencias las tarjetas saturan la pantalla; eligió «Lista + detalle» entre tres opciones (las otras: tabla compacta y tablero por columnas).
+- Migración 27 `urgencias_pestanas_y_atencion`: `admin_urgencias(vista, búsqueda, atención)` con vistas `sin_atender`, `en_gestion`, `historial` y filtro `sede`/`domicilio` (reemplaza la firma de la 26). Prueba [15](../supabase/tests/15_admin_urgencias.sql) actualizada: **11/11 OK**.
+- Frontend: pestañas con cantidad (sin atender y en gestión), filtros, lista compacta (nombre, espera, síntoma, ícono de domicilio) y panel de detalle al lado, sin ventanas; en pantallas angostas el detalle reemplaza la lista. Al guardar un estado, la urgencia pasa a su pestaña y se abre la siguiente. 109/109 pruebas y compilación correcta. Pendiente: revisarlo en el navegador.
+
+### Ajustes de diseño del administrador (26 nov) — migración 28 y frontend
+- **Aclaración del usuario:** todos los datos que hay hoy en el dashboard son de prueba, no reales (incluida la urgencia del 4 nov).
+- **Pedido:** aplicar los ajustes de diseño propuestos en la revisión del proyecto.
+- Migración 28 `admin_inicio` (aplicada por el MCP, solo lectura, sin tocar las `bot_*`): pendientes por tipo (urgencias, citas por confirmar, inscripciones, asesorías) con la fecha más antigua, y citas de hoy no canceladas (hora de Bogotá). Exige `is_admin()`. Prueba [16](../supabase/tests/16_admin_inicio.sql): **4/4 OK**.
+- Frontend: pantalla «Inicio» (nueva llegada del administrador) con cinco tarjetas enlazadas a cada pestaña ya filtrada; menú agrupado en «Atención», «Solicitudes» y «Configuración»; patrón «lista + detalle» compartido (`lista-detalle.ts`) en Urgencias, Agenda pendiente, Cursos y Asesorías, sin tablas ni ventanas de detalle. Cursos y Asesorías siguen de solo lectura (ahora con botones de llamada y WhatsApp). 113/113 pruebas y compilación correcta. Pendiente: revisarlo en el navegador.
+
+### Enlace de invitación para especialistas (26 nov) — migración 29, Edge Function y frontend
+- **Decisión del usuario:** no tienen los correos de los especialistas; se eligió un enlace de invitación (se descartó el registro abierto).
+- Migración 29 `invitaciones_especialista`: tabla `agenda.invitaciones_especialista` (solo la huella SHA-256 del enlace; un solo uso; vence en 72 h; una abierta por especialista), `admin_crear_invitacion`, `admin_anular_invitacion`, `admin_invitaciones` y, solo para `service_role`, `invitacion_consultar` / `invitacion_canjear` (nunca vincula una cuenta que ya tenga perfil). Prueba [17](../supabase/tests/17_invitaciones_especialista.sql): **9/9 OK**.
+- Edge Function nueva [invitacion-especialista](../supabase/functions/invitacion-especialista/index.ts), pública (`verify_jwt: false`; la credencial es el enlace). Desplegada y probada en vivo con un especialista ficticio temporal (token inventado → 404, contraseña corta → 400, correo en uso → 409, alta correcta → 200, reutilizar → 404, la cuenta inicia sesión como especialista y solo ve su ficha, no puede generar invitaciones, el canje directo está prohibido). El especialista y la cuenta de prueba se borraron.
+- Frontend: en «Especialistas», «Generar enlace de acceso» / «Nuevo enlace» / «Anular enlace», ventana con copiar y enviar por WhatsApp; página pública `/invitacion` para escribir correo y contraseña. 123/123 pruebas y compilación correcta. Pendiente: probarlo en el navegador.
+- Límites: el enlace usa la dirección desde la que entra el administrador (hoy `localhost`, solo abre en ese equipo); el correo que escribe el especialista no se verifica (si lo escribe mal no podrá recuperar la contraseña).
+
+### Modo oscuro (26 nov) — frontend
+- **Pedido del usuario:** una configuración de modo oscuro opcional, con diseño y letras coherentes.
+- Selector «Apariencia» (barra superior y pantallas de acceso): **Claro** (por defecto, como antes), **Oscuro** y **Según el equipo**. Se recuerda en cada navegador (no va a la base de datos).
+- Todos los colores pasaron a variables con su versión clara y oscura en `styles.scss`; Material y el calendario siguen el mismo modo. Contraste calculado en 36 pares de texto (mínimo 4,66 en oscuro y 5,82 en claro; WCAG AA pide 4,5) y 8 elementos gráficos (≥ 3).
+- Revisado con capturas en Chrome sin ventana y **datos simulados** (ingreso, Inicio, Urgencias, Especialistas, Dashboard, calendario, un diálogo y vista de celular). No se revisaron una por una: Cursos, Asesorías, Agenda, Agenda pendiente, Horarios ni los demás diálogos.
+- Corregido de paso: en celular la «lista + detalle» se salía de la pantalla.
+- 129/129 pruebas y compilación correcta.
+
 ## Pendiente
+- Verificado el 26 nov: el **registro público sigue activo** en Supabase (`disable_signup: false`). Desactivarlo en el panel (Authentication → «Allow new users to sign up»); las invitaciones no lo necesitan.
+- Publicar el sistema (hosting) y definir `APP_URL` / `ALLOWED_ORIGINS` en las dos Edge Functions para que los enlaces de invitación funcionen fuera del equipo local.
+- Urgencias, fase 2: aviso por WhatsApp o correo al llegar una urgencia (n8n); definir a quién y por dónde. Hoy solo se ve entrando al dashboard.
+- Urgencias: historial de cambios de estado (quién y cuándo atendió, tiempos de respuesta, «atendidas hoy»); requiere una tabla nueva.
 - Decidir si en «Agenda pendiente» el administrador puede escribir notas de la gestión y agendar directamente desde allí. (El cambio de estado ya está: migración 25.)
 - Decidir si la cancelación por WhatsApp pasa por `agenda.cancel` (hoy es una actualización directa en `bot_gestion`).
 - Revisar `revisar_inactividad()` (ejecutable sin sesión) con la persona que mantiene el bot.

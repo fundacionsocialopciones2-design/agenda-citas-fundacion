@@ -1,16 +1,17 @@
-import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
-import { Curso, ETIQUETA_INSCRIPCION, EstadoInscripcion, FiltrosInscripciones, Inscripcion } from '../../core/models';
+import { CifrasGestion, Curso, ETIQUETA_INSCRIPCION, EstadoInscripcion, FiltrosInscripciones, Inscripcion, VistaGestion } from '../../core/models';
 import { fechaBogota } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
 import { agruparPorCategoria } from './agrupar-catalogo';
 import { DetalleInscripcion } from './detalle-inscripcion';
 import { FilaLista, ListaDetalle } from './lista-detalle';
+import { ESTADOS_INSCRIPCION, PestanasGestion, VACIO_GESTION, vistaDe } from './pestanas-gestion';
 
-const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado: '', busqueda: '' };
+const SIN_FILTROS: FiltrosInscripciones = { vista: 'por_confirmar', cursoId: '', categoriaId: '', estado: '', busqueda: '' };
 
 /**
  * Cursos que ofrece el chatbot (catálogo = menú del bot) y personas inscritas por WhatsApp. Solo lectura.
@@ -18,18 +19,27 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
  */
 @Component({
   selector: 'app-cursos',
-  imports: [MatButtonModule, Estado, ListaDetalle, DetalleInscripcion],
+  imports: [MatButtonModule, Estado, ListaDetalle, PestanasGestion, DetalleInscripcion],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
         <div>
           <h1>Cursos</h1>
-          <p>Cursos que ofrece el chatbot y las personas que se inscribieron por WhatsApp.</p>
+          <p>Cursos que ofrece el chatbot y las personas que se inscribieron por WhatsApp. Cambia su estado cuando gestiones cada inscripción.</p>
         </div>
       </div>
 
+      <app-pestanas-gestion
+        [etiqueta]="'Inscripciones por estado'"
+        [textos]="textosPestanas"
+        [cifras]="cifras()"
+        [vista]="filtros().vista"
+        [bloqueada]="bloqueado()"
+        (elegida)="cambiarVista($event)"
+      />
+
       <form class="tarjeta" (submit)="$event.preventDefault(); buscar()" aria-label="Filtros de inscritos">
-        <div class="fila">
+        <div class="fila fila--filtros">
           <div class="campo" style="margin: 0">
             <label for="f-cat">Categoría</label>
             <select id="f-cat" (change)="cambiarCategoria(valor($event))">
@@ -48,23 +58,25 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
               }
             </select>
           </div>
-          <div class="campo" style="margin: 0">
-            <label for="f-est">Estado</label>
-            <select id="f-est" (change)="cambiar('estado', valor($event))">
-              <option value="" [selected]="!filtros().estado">Todos</option>
-              @for (e of estados; track e.valor) {
-                <option [value]="e.valor" [selected]="filtros().estado === e.valor">{{ e.texto }}</option>
-              }
-            </select>
-          </div>
+          @if (estados().length > 1) {
+            <div class="campo" style="margin: 0">
+              <label for="f-est">Estado</label>
+              <select id="f-est" (change)="cambiar('estado', valor($event))">
+                <option value="" [selected]="!filtros().estado">Todos</option>
+                @for (e of estados(); track e.valor) {
+                  <option [value]="e.valor" [selected]="filtros().estado === e.valor">{{ e.texto }}</option>
+                }
+              </select>
+            </div>
+          }
           <div class="campo" style="margin: 0">
             <label for="f-buscar">Nombre o documento</label>
             <input id="f-buscar" type="search" autocomplete="off" [value]="filtros().busqueda" (input)="cambiar('busqueda', valor($event))" />
           </div>
-        </div>
-        <div class="acciones" style="margin-top: 12px">
-          <button mat-flat-button type="submit" [disabled]="estado() === 'cargando'">Buscar</button>
-          <button mat-button type="button" (click)="limpiar()">Limpiar filtros</button>
+          <div class="acciones">
+            <button mat-flat-button type="submit" [disabled]="estado() === 'cargando'">Buscar</button>
+            <button mat-button type="button" (click)="limpiar()">Limpiar filtros</button>
+          </div>
         </div>
       </form>
 
@@ -79,15 +91,15 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
           }
           @default {
             @if (inscritos().length === 0) {
-              <app-estado icono="school" titulo="No hay inscritos con estos filtros" mensaje="Elige otro curso o cambia los filtros." />
+              <app-estado [icono]="vacio().icono" [titulo]="vacio().titulo" [mensaje]="vacio().mensaje" />
             } @else {
-              <p class="ayuda">
+              <p class="ayuda conteo">
                 {{ inscritos().length }} {{ inscritos().length === 1 ? 'persona inscrita' : 'personas inscritas' }}{{ inscritos().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
               </p>
-              <app-lista-detalle etiqueta="Personas inscritas" [filas]="filas()" [(seleccion)]="seleccion">
+              <app-lista-detalle etiqueta="Personas inscritas" [filas]="filas()" [bloqueada]="bloqueado()" [(seleccion)]="seleccion">
                 <ng-template let-id>
                   @if (porId().get(id); as r) {
-                    <app-detalle-inscripcion [inscripcion]="r" />
+                    <app-detalle-inscripcion [inscripcion]="r" (cambiada)="alCambiar()" />
                   }
                 </ng-template>
               </app-lista-detalle>
@@ -105,7 +117,13 @@ export class Cursos implements OnInit {
   readonly filtroEstado = input<string | undefined>(undefined, { alias: 'estado' });
 
   protected readonly valor = valorDe;
-  protected readonly estados = (Object.keys(ETIQUETA_INSCRIPCION) as EstadoInscripcion[]).map((valor) => ({ valor, texto: ETIQUETA_INSCRIPCION[valor] }));
+  protected readonly estados = computed(() => ESTADOS_INSCRIPCION[this.filtros().vista].map((valor) => ({ valor, texto: ETIQUETA_INSCRIPCION[valor] })));
+  protected readonly textosPestanas = { por_confirmar: 'Por confirmar', confirmados: 'Confirmados', cancelados: 'Cancelados' };
+  private readonly conteo = signal<CifrasGestion | null>(null);
+  protected readonly cifras = this.conteo.asReadonly();
+  protected readonly vacio = computed(() => VACIO_GESTION[this.filtros().vista]);
+  private readonly detalle = viewChild(DetalleInscripcion);
+  protected readonly bloqueado = computed(() => this.detalle()?.ocupado() ?? false);
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly mensajeError = signal('');
@@ -126,7 +144,7 @@ export class Cursos implements OnInit {
     const f = this.aplicados();
     if (f.cursoId) return `Inscritos en ${this.catalogo().find((c) => c.curso_id === f.cursoId)?.titulo ?? 'el curso elegido'}`;
     if (f.categoriaId) return `Inscritos en ${this.categorias().find((g) => g.id === f.categoriaId)?.nombre ?? 'la categoría elegida'}`;
-    return 'Todas las personas inscritas';
+    return { por_confirmar: 'Personas por confirmar', confirmados: 'Personas confirmadas', cancelados: 'Inscripciones canceladas' }[f.vista];
   });
 
   protected readonly seleccion = signal<number | null>(null);
@@ -144,12 +162,15 @@ export class Cursos implements OnInit {
 
   ngOnInit(): void {
     const estado = this.filtroEstado();
-    if (estado && estado in ETIQUETA_INSCRIPCION) this.cambiar('estado', estado);
+    if (estado && estado in ETIQUETA_INSCRIPCION) {
+      this.filtros.update((f) => ({ ...f, estado: estado as EstadoInscripcion, vista: vistaDe(ESTADOS_INSCRIPCION, estado) }));
+    }
     this.recargar();
   }
 
   protected recargar(): void {
     void this.cargarCatalogo();
+    void this.cargarCifras();
     void this.buscar();
   }
 
@@ -162,9 +183,31 @@ export class Cursos implements OnInit {
     }
   }
 
-  protected async buscar(): Promise<void> {
-    const f = this.filtros();
-    this.estado.set('cargando');
+  /** Cifras de las pestañas. Si fallan, las pestañas se muestran sin número. */
+  private async cargarCifras(): Promise<void> {
+    try {
+      this.conteo.set((await this.api.conteoGestion()).inscripciones);
+    } catch {
+      this.conteo.set(null);
+    }
+  }
+
+  protected cambiarVista(vista: VistaGestion): void {
+    if (vista === this.filtros().vista) return;
+    this.filtros.update((f) => ({ ...f, vista, estado: '' }));
+    this.seleccion.set(null);
+    void this.buscar();
+  }
+
+  protected alCambiar(): void {
+    void this.buscar(true);
+    void this.cargarCifras();
+  }
+
+  /** `silencioso`: conserva lo que se ve y los filtros aplicados (tras guardar un estado). */
+  protected async buscar(silencioso = false): Promise<void> {
+    const f = silencioso ? this.aplicados() : this.filtros();
+    if (!silencioso) this.estado.set('cargando');
     try {
       this.inscritos.set(await this.api.inscripciones(f));
       this.aplicados.set(f);
@@ -189,7 +232,7 @@ export class Cursos implements OnInit {
   }
 
   protected limpiar(): void {
-    this.filtros.set(SIN_FILTROS);
+    this.filtros.update((f) => ({ ...SIN_FILTROS, vista: f.vista }));
     void this.buscar();
   }
 }

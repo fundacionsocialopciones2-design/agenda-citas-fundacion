@@ -56,34 +56,34 @@ import { enlaceLlamada, enlaceWhatsApp, telefonoParaLlamar } from './contacto';
     </form>
 
     <dl class="datos">
-      <dt>Servicio</dt>
-      <dd>{{ c.servicio }}</dd>
+      <div><dt>Servicio</dt>
+      <dd>{{ c.servicio }}</dd></div>
       @if (c.grupo) {
-        <dt>Grupo</dt>
-        <dd>{{ c.grupo }}</dd>
+        <div><dt>Grupo</dt>
+        <dd>{{ c.grupo }}</dd></div>
       }
-      <dt>Motivo</dt>
-      <dd>{{ c.motivo || 'No registrado' }}</dd>
-      <dt>Solicitud</dt>
-      <dd>{{ fecha(c.creado) }}</dd>
-      <dt>Documento</dt>
-      <dd>{{ c.numero_documento ? c.tipo_documento + ' ' + c.numero_documento : 'No registrado' }}</dd>
-      <dt>WhatsApp</dt>
-      <dd>{{ c.telefono }}</dd>
-      <dt>Teléfono de contacto</dt>
-      <dd>{{ c.telefono_contacto || 'El mismo de WhatsApp' }}</dd>
+      <div><dt>Motivo</dt>
+      <dd>{{ c.motivo || 'No registrado' }}</dd></div>
+      <div><dt>Solicitud</dt>
+      <dd>{{ fecha(c.creado) }}</dd></div>
+      <div><dt>Documento</dt>
+      <dd>{{ c.numero_documento ? c.tipo_documento + ' ' + c.numero_documento : 'No registrado' }}</dd></div>
+      <div><dt>WhatsApp</dt>
+      <dd>{{ c.telefono }}</dd></div>
+      <div><dt>Teléfono de contacto</dt>
+      <dd>{{ c.telefono_contacto || 'El mismo de WhatsApp' }}</dd></div>
       @if (c.correo) {
-        <dt>Correo</dt>
-        <dd><a [href]="'mailto:' + c.correo">{{ c.correo }}</a></dd>
+        <div><dt>Correo</dt>
+        <dd><a [href]="'mailto:' + c.correo">{{ c.correo }}</a></dd></div>
       }
-      <dt>Atención</dt>
-      <dd>{{ c.modalidad || 'No indicada' }}</dd>
+      <div><dt>Atención</dt>
+      <dd>{{ c.modalidad || 'No indicada' }}</dd></div>
       @if (c.direccion) {
-        <dt>Dirección</dt>
-        <dd>{{ c.direccion }}</dd>
+        <div><dt>Dirección</dt>
+        <dd>{{ c.direccion }}</dd></div>
       }
-      <dt>Autorizó datos</dt>
-      <dd>{{ fecha(c.autoriza_datos_at) }}</dd>
+      <div><dt>Autorizó datos</dt>
+      <dd>{{ fecha(c.autoriza_datos_at) }}</dd></div>
     </dl>
     @if (c.detalle) {
       <h3>Lo que contó la persona</h3>

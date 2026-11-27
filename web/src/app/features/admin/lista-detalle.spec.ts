@@ -48,6 +48,76 @@ describe('ListaDetalle', () => {
     expect(titulo()).toBe('Detalle 1');
   });
 
+  const veinte = Array.from({ length: 20 }, (_, i) => fila(i + 1));
+  const pagina = (html: HTMLElement, nombre: 'anterior' | 'siguiente') => html.querySelector<HTMLButtonElement>(`[aria-label="Página ${nombre}"]`)!;
+  const rango = (html: HTMLElement) => html.querySelector('.paginas p')?.textContent?.replace(/\s+/g, ' ').trim();
+
+  it('sin pasar de 8 no muestra controles de página', async () => {
+    const { html } = await renderizar();
+    expect(html.querySelector('.paginas')).toBeNull();
+  });
+
+  it('muestra de 8 en 8 y al cambiar de página elige la primera de ella', async () => {
+    const { html, anfitrion, filas, titulo, estabilizar } = await renderizar();
+    anfitrion.filas.set(veinte);
+    await estabilizar();
+    expect(filas()).toHaveLength(8);
+    expect(rango(html)).toBe('1–8 de 20 · Página 1 de 3');
+    expect(pagina(html, 'anterior').getAttribute('aria-disabled')).toBe('true');
+
+    pagina(html, 'siguiente').click();
+    await estabilizar();
+    expect(titulo()).toBe('Detalle 9');
+    pagina(html, 'siguiente').click();
+    await estabilizar();
+    expect(filas()).toHaveLength(4);
+    expect(rango(html)).toBe('17–20 de 20 · Página 3 de 3');
+    pagina(html, 'siguiente').click(); // ya es la última
+    await estabilizar();
+    expect(titulo()).toBe('Detalle 17');
+  });
+
+  it('si la elegida desaparece se queda en la misma página, y si la página sobra pasa a la anterior', async () => {
+    const { html, anfitrion, titulo, estabilizar } = await renderizar();
+    anfitrion.filas.set(veinte);
+    await estabilizar();
+    pagina(html, 'siguiente').click();
+    await estabilizar();
+    anfitrion.filas.set(veinte.filter((f) => f.id !== 9));
+    await estabilizar();
+    expect(titulo()).toBe('Detalle 10');
+    expect(rango(html)).toContain('Página 2 de 3');
+    anfitrion.filas.set(veinte.slice(0, 5));
+    await estabilizar();
+    expect(titulo()).toBe('Detalle 1');
+    expect(html.querySelector('.paginas')).toBeNull();
+  });
+
+  it('una recarga muestra la página donde quedó la elegida', async () => {
+    const { html, anfitrion, filas, titulo, estabilizar } = await renderizar();
+    anfitrion.filas.set(veinte);
+    await estabilizar();
+    filas()[7].click();
+    await estabilizar();
+    anfitrion.filas.set([fila(99), ...veinte]);
+    await estabilizar();
+    expect(titulo()).toBe('Detalle 8');
+    expect(rango(html)).toContain('Página 2 de 3');
+  });
+
+  it('en pantalla angosta conserva la página al volver del detalle', async () => {
+    const { html, anfitrion, filas, estabilizar } = await renderizar(true);
+    anfitrion.filas.set(veinte);
+    await estabilizar();
+    pagina(html, 'siguiente').click();
+    await estabilizar();
+    filas()[0].click();
+    await estabilizar();
+    html.querySelector<HTMLButtonElement>('.volver')!.click();
+    await estabilizar();
+    expect(rango(html)).toContain('Página 2 de 3');
+  });
+
   it('en pantalla angosta muestra una cosa a la vez', async () => {
     const { html, filas, titulo, estabilizar } = await renderizar(true);
     expect(titulo()).toBeUndefined();

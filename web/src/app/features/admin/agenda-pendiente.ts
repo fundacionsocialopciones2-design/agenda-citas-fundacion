@@ -33,7 +33,7 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
       </div>
 
       <form class="tarjeta" (submit)="$event.preventDefault(); buscar()" aria-label="Filtros de citas pendientes">
-        <div class="fila">
+        <div class="fila fila--filtros">
           <div class="campo" style="margin: 0">
             <label for="f-servicio">Servicio</label>
             <select id="f-servicio" (change)="cambiar('servicioId', valor($event))">
@@ -56,10 +56,10 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
             <label for="f-buscar">Nombre o documento</label>
             <input id="f-buscar" type="search" autocomplete="off" [value]="filtros().busqueda" (input)="cambiar('busqueda', valor($event))" />
           </div>
-        </div>
-        <div class="acciones" style="margin-top: 12px">
-          <button mat-flat-button type="submit" [disabled]="estado() === 'cargando' || bloqueado()">Buscar</button>
-          <button mat-button type="button" [disabled]="bloqueado()" (click)="limpiar()">Limpiar filtros</button>
+          <div class="acciones">
+            <button mat-flat-button type="submit" [disabled]="estado() === 'cargando' || bloqueado()">Buscar</button>
+            <button mat-button type="button" [disabled]="bloqueado()" (click)="limpiar()">Limpiar filtros</button>
+          </div>
         </div>
       </form>
 
@@ -76,7 +76,7 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
             @if (citas().length === 0) {
               <app-estado icono="pending_actions" titulo="No hay solicitudes de cita con estos filtros" mensaje="Cuando alguien pida por WhatsApp una cita de un servicio sin agenda en línea, aparecerá aquí." />
             } @else {
-              <p class="ayuda">
+              <p class="ayuda conteo">
                 {{ citas().length }} {{ citas().length === 1 ? 'solicitud' : 'solicitudes' }}{{ citas().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
               </p>
               <app-lista-detalle etiqueta="Solicitudes de cita" [filas]="filas()" [bloqueada]="bloqueado()" [(seleccion)]="seleccion">

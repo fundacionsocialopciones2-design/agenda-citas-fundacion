@@ -5,6 +5,7 @@ Dashboard de administración y calendario de especialistas de la Fundación Soci
 ## Comandos
 Todos se ejecutan dentro de `web/` y exigen **Node 24.22** (`nvm use 24.22.0`; Node 20 también está instalado y rompe Angular 22). `ng` desde la raíz del repo falla ("outside a workspace").
 - Dev: `npm start` (`ng serve`, puerto 4200)
+- `angular.json` tiene `serve.options.prebundle: false`: en este equipo Vite fallaba con `EPERM … rename deps_temp_* -> deps` (todo respondía «504 Outdated Optimize Dep»), también con la caché limpia. Causa probable: el antivirus ReasonLabs bloqueando la carpeta. No quitarlo sin comprobar que `npm start` carga sin 504.
 - Build: `npm run build` (producción por defecto). Desarrollo: `npx ng build --configuration development`
 - Build en observación: `npm run watch`
 - Test: `npx ng test --watch=false` (`npm test` queda en modo observación)

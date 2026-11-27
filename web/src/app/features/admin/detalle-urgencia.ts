@@ -98,20 +98,20 @@ const PESTANA: Record<EstadoSolicitud, string> = {
 
     <h3>Datos de la persona</h3>
     <dl class="datos">
-      <dt>Documento</dt>
-      <dd>{{ u.numero_documento ? u.tipo_documento + ' ' + u.numero_documento : 'No registrado' }}</dd>
-      <dt>WhatsApp</dt>
-      <dd>{{ u.telefono }}</dd>
-      <dt>Teléfono de contacto</dt>
-      <dd>{{ u.telefono_contacto || 'El mismo de WhatsApp' }}</dd>
+      <div><dt>Documento</dt>
+      <dd>{{ u.numero_documento ? u.tipo_documento + ' ' + u.numero_documento : 'No registrado' }}</dd></div>
+      <div><dt>WhatsApp</dt>
+      <dd>{{ u.telefono }}</dd></div>
+      <div><dt>Teléfono de contacto</dt>
+      <dd>{{ u.telefono_contacto || 'El mismo de WhatsApp' }}</dd></div>
       @if (u.correo) {
-        <dt>Correo</dt>
-        <dd><a [href]="'mailto:' + u.correo">{{ u.correo }}</a></dd>
+        <div><dt>Correo</dt>
+        <dd><a [href]="'mailto:' + u.correo">{{ u.correo }}</a></dd></div>
       }
-      <dt>Reportada</dt>
-      <dd>{{ fecha(u.creado) }}</dd>
-      <dt>Autorizó datos</dt>
-      <dd>{{ fecha(u.autoriza_datos_at) }}</dd>
+      <div><dt>Reportada</dt>
+      <dd>{{ fecha(u.creado) }}</dd></div>
+      <div><dt>Autorizó datos</dt>
+      <dd>{{ fecha(u.autoriza_datos_at) }}</dd></div>
     </dl>
     <p class="ayuda">Información confidencial de salud. Cambiar el estado o escribir notas no envía mensajes a la persona.</p>
   `,

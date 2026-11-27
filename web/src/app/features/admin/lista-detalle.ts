@@ -1,6 +1,6 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { NgTemplateOutlet } from '@angular/common';
-import { afterNextRender, Component, contentChild, effect, ElementRef, inject, Injector, input, model, TemplateRef, untracked } from '@angular/core';
+import { afterNextRender, Component, computed, contentChild, effect, ElementRef, inject, Injector, input, model, signal, TemplateRef, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,10 +22,12 @@ export interface FilaLista {
 }
 
 /**
- * Patrón «lista + detalle» del administrador: lista compacta a la izquierda y, al lado, la plantilla del detalle
- * del elemento elegido (recibe su id). Bajo 1000 px el detalle reemplaza la lista. En pantalla ancha siempre hay
- * uno elegido: si el actual deja de estar, se pasa al primero. El panel se crea de nuevo por cada elemento, así
- * nada de lo escrito para una persona pasa a otra. El detalle debe tener un `h2` con `tabindex="-1"`.
+ * Patrón «lista + detalle» del administrador: lista compacta y paginada a la izquierda y, al lado, la plantilla
+ * del detalle del elemento elegido (recibe su id). Bajo 1000 px el detalle reemplaza la lista. En pantalla ancha
+ * siempre hay uno elegido: al cambiar de página, el primero de ella; si el actual deja de estar, el primero de la
+ * página en la que se estaba. El panel se crea de nuevo por cada elemento, así nada de lo escrito para una persona
+ * pasa a otra. El detalle debe tener un `h2` con `tabindex="-1"`. La paginación es solo de presentación: los
+ * filtros y el orden vienen de la base de datos.
  */
 @Component({
   selector: 'app-lista-detalle',
@@ -33,8 +35,9 @@ export interface FilaLista {
   template: `
     <div class="maestro" [class.maestro--angosto]="angosto()">
       @if (!angosto() || seleccion() === null) {
-        <ul class="tarjeta lista" [attr.aria-label]="etiqueta()">
-          @for (f of filas(); track f.id) {
+        <div class="lista">
+          <ul [attr.aria-label]="etiqueta()">
+          @for (f of visibles(); track f.id) {
             <li>
               <button
                 type="button"
@@ -62,7 +65,33 @@ export interface FilaLista {
               </button>
             </li>
           }
-        </ul>
+          </ul>
+          @if (paginas() > 1) {
+            <nav class="paginas" [attr.aria-label]="'Páginas de ' + etiqueta()">
+              <button
+                matIconButton
+                type="button"
+                aria-label="Página anterior"
+                disabledInteractive
+                [disabled]="bloqueada() || actual() === 0"
+                (click)="irA(actual() - 1)"
+              >
+                <mat-icon aria-hidden="true">chevron_left</mat-icon>
+              </button>
+              <p role="status">{{ rango() }} <span>· Página {{ actual() + 1 }} de {{ paginas() }}</span></p>
+              <button
+                matIconButton
+                type="button"
+                aria-label="Página siguiente"
+                disabledInteractive
+                [disabled]="bloqueada() || actual() === paginas() - 1"
+                (click)="irA(actual() + 1)"
+              >
+                <mat-icon aria-hidden="true">chevron_right</mat-icon>
+              </button>
+            </nav>
+          }
+        </div>
       }
 
       @if (seleccion() !== null) {
@@ -83,37 +112,53 @@ export interface FilaLista {
   styles: `
     .maestro {
       display: grid;
-      grid-template-columns: minmax(280px, 2fr) minmax(0, 3fr);
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+      gap: 8px;
       align-items: start;
     }
     .maestro--angosto {
       grid-template-columns: minmax(0, 1fr);
     }
-    /* En pantallas anchas la lista y el detalle se desplazan por separado: la página no crece. */
-    .maestro:not(.maestro--angosto) > * {
-      max-height: max(420px, calc(100dvh - 340px));
-      overflow-y: auto;
-    }
-    .lista {
+    /* Cada solicitud es su propia tarjeta, separada 8 px de la siguiente (pedido del usuario). */
+    .lista ul {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       list-style: none;
       margin: 0;
-      padding: 6px;
+      padding: 0;
     }
-    .lista li + li {
-      border-top: 1px solid var(--app-borde-suave);
+    .paginas {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .paginas p {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .paginas p span {
+      font-weight: 400;
+      color: var(--app-suave);
     }
     .fila-lista {
       width: 100%;
       min-height: 56px;
       display: flex;
       flex-direction: column;
+      align-items: stretch;
       gap: 2px;
       padding: 8px 10px;
-      border: 0;
+      border: 1px solid var(--app-borde-suave);
       border-left: 4px solid var(--app-borde);
-      border-radius: 6px;
-      background: transparent;
+      border-radius: 10px;
+      background: var(--app-superficie);
+      box-shadow: var(--app-sombra);
       font: inherit;
       color: var(--app-texto);
       text-align: left;
@@ -123,9 +168,12 @@ export interface FilaLista {
       border-left-color: var(--app-peligro-borde);
     }
     .fila-lista:hover {
-      background: var(--app-fondo);
+      background: var(--app-resaltado);
     }
     .fila-lista[aria-current='true'] {
+      border-top-color: var(--app-primario);
+      border-right-color: var(--app-primario);
+      border-bottom-color: var(--app-primario);
       background: var(--app-primario-suave);
     }
     .linea {
@@ -160,6 +208,7 @@ export interface FilaLista {
     }
     .panel {
       min-width: 0;
+      padding: 14px 16px;
     }
     .volver {
       margin-bottom: 8px;
@@ -171,8 +220,22 @@ export class ListaDetalle {
   readonly etiqueta = input.required<string>();
   /** No deja cambiar de elemento (por ejemplo, mientras el detalle está guardando). */
   readonly bloqueada = input(false);
+  readonly porPagina = input(8);
   readonly seleccion = model<number | null>(null);
   protected readonly detalle = contentChild.required(TemplateRef);
+
+  private readonly pagina = signal(0);
+  protected readonly paginas = computed(() => Math.max(1, Math.ceil(this.filas().length / this.porPagina())));
+  /** Página que se muestra (la lista puede haberse acortado). */
+  protected readonly actual = computed(() => Math.min(this.pagina(), this.paginas() - 1));
+  protected readonly visibles = computed(() => {
+    const desde = this.actual() * this.porPagina();
+    return this.filas().slice(desde, desde + this.porPagina());
+  });
+  protected readonly rango = computed(() => {
+    const desde = this.actual() * this.porPagina();
+    return `${desde + 1}–${desde + this.visibles().length} de ${this.filas().length}`;
+  });
 
   private readonly injector = inject(Injector);
   private readonly anfitrion = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -188,9 +251,21 @@ export class ListaDetalle {
       const filas = this.filas();
       const angosto = this.angosto();
       untracked(() => {
-        if (!filas.some((f) => f.id === this.seleccion())) this.seleccion.set(angosto ? null : (filas[0]?.id ?? null));
+        const i = filas.findIndex((f) => f.id === this.seleccion());
+        if (i >= 0) {
+          this.pagina.set(Math.floor(i / this.porPagina())); // se muestra la página de la elegida
+          return;
+        }
+        this.pagina.set(this.actual());
+        this.seleccion.set(angosto ? null : (this.visibles()[0]?.id ?? null));
       });
     });
+  }
+
+  protected irA(pagina: number): void {
+    if (this.bloqueada() || pagina < 0 || pagina >= this.paginas()) return;
+    this.pagina.set(pagina);
+    this.seleccion.set(this.angosto() ? null : (this.visibles()[0]?.id ?? null));
   }
 
   protected elegir(id: number): void {
