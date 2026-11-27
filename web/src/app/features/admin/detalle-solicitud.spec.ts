@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { describe, expect, it } from 'vitest';
 import { SolicitudAsesoria } from '../../core/models';
 import { DetalleSolicitud } from './detalle-solicitud';
@@ -27,8 +26,8 @@ const solicitud = (extra: Partial<SolicitudAsesoria> = {}): SolicitudAsesoria =>
 });
 
 function renderizar(s: SolicitudAsesoria): HTMLElement {
-  TestBed.configureTestingModule({ providers: [{ provide: MAT_DIALOG_DATA, useValue: s }] });
   const fixture = TestBed.createComponent(DetalleSolicitud);
+  fixture.componentRef.setInput('solicitud', s);
   fixture.detectChanges();
   return fixture.nativeElement as HTMLElement;
 }

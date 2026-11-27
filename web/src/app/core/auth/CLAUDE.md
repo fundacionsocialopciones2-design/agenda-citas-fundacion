@@ -5,4 +5,6 @@
 - The auth listener is registered **before** `getSession()` so the `PASSWORD_RECOVERY` event from an email link is not missed. Invitation and recovery links land on `/restablecer` with a session in the URL hash (`detectSessionInUrl`); that page only lets you set a password when a session exists.
 - `cerrarSesion()` signs out with `scope: 'local'` (does not kill the user's other devices) and never throws: if the network fails it still clears local state.
 - `sesionPerdida` increments when the session disappears **without** this tab asking (another tab signed out, expiry); `App` reacts by redirecting to `/ingresar?motivo=sesion`. A voluntary close sets `cierreSolicitado` so it does not trigger that redirect.
+- `/invitacion#<token>` (public, no guard) creates a specialist account through the Edge Function; with an open session it asks to close it first, and after creating the account it signs in with the new credentials.
+- `rutaInicio()`: admin → `/admin/inicio`, specialist → `/mi-panel`.
 - Guards (`soloAutenticados`, `soloInvitados`, `conRol`) improve UX only; real authorization is RLS and the `is_admin()` checks in the database.

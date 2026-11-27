@@ -40,5 +40,13 @@ export const sumarDias = (fecha: string, dias: number): string => {
   return diaBogota(d);
 };
 
+/** Tiempo transcurrido desde un instante: «hace un momento», «hace 5 minutos», «hace 2 horas», «hace 3 días». */
+export const haceCuanto = (iso: string, ahora: number = Date.now()): string => {
+  const minutos = Math.floor((ahora - Date.parse(iso)) / 60_000);
+  if (minutos < 1) return 'hace un momento';
+  const [n, unidad] = minutos < 60 ? [minutos, 'minuto'] : minutos < 1440 ? [Math.floor(minutos / 60), 'hora'] : [Math.floor(minutos / 1440), 'día'];
+  return `hace ${n} ${unidad}${n === 1 ? '' : 's'}`;
+};
+
 /** HH:mm de un valor time de Postgres (HH:MM:SS). */
 export const horaCorta = (t: string): string => t.slice(0, 5);

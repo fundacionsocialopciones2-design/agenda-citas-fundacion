@@ -1,10 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
 import { describe, expect, it, vi } from 'vitest';
 import { AgendaApi } from '../../core/agenda.api';
 import { SolicitudAsesoria, TipoAsesoria } from '../../core/models';
 import { Asesorias } from './asesorias';
-import { DetalleSolicitud } from './detalle-solicitud';
 
 const tipo = (extra: Partial<TipoAsesoria>): TipoAsesoria => ({
   servicio_id: 'jur_peticion',
@@ -48,27 +46,26 @@ const solicitud = (extra: Partial<SolicitudAsesoria> = {}): SolicitudAsesoria =>
 
 async function renderizar(solicitudes: SolicitudAsesoria[] = [solicitud()]) {
   const api = { asesorias: vi.fn().mockResolvedValue(CATALOGO), solicitudesAsesoria: vi.fn().mockResolvedValue(solicitudes) };
-  const dialog = { open: vi.fn() };
-  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }, { provide: MatDialog, useValue: dialog }] });
+  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }] });
   const fixture = TestBed.createComponent(Asesorias);
   await fixture.whenStable();
   fixture.detectChanges();
-  return { html: fixture.nativeElement as HTMLElement, api, dialog, fixture };
+  return { html: fixture.nativeElement as HTMLElement, api, fixture };
 }
 
 describe('Asesorias (administrador)', () => {
-  it('no muestra tarjetas de catálogo: solo filtros y tabla', async () => {
+  it('no muestra tarjetas de catálogo: solo filtros y lista', async () => {
     const { html } = await renderizar();
     expect(html.querySelector('.catalogo')).toBeNull();
     expect(html.querySelector('form')).not.toBeNull();
-    expect(html.querySelector('table')).not.toBeNull();
+    expect(html.querySelector('app-lista-detalle')).not.toBeNull();
   });
 
   it('al entrar trae todas las solicitudes', async () => {
     const { html, api } = await renderizar();
     expect(api.solicitudesAsesoria).toHaveBeenCalledWith({ servicioId: '', categoriaId: '', estado: '', busqueda: '' });
     expect(html.querySelector('#t-solicitudes')?.textContent).toContain('Todas las solicitudes de asesoría');
-    expect(html.querySelector('tbody tr')?.textContent).toContain('Ana Prueba');
+    expect(html.querySelector('.fila-lista')?.textContent).toContain('Ana Prueba');
   });
 
   it('al elegir en el filtro y buscar, filtra por esa opción', async () => {
@@ -91,7 +88,10 @@ describe('Asesorias (administrador)', () => {
 
   it('una solicitud sin documento no muestra un documento vacío', async () => {
     const { html } = await renderizar([solicitud({ tipo_documento: null, numero_documento: null })]);
-    expect(html.querySelector('tbody td[data-etiqueta="Persona"]')?.textContent?.trim()).toBe('Ana Prueba');
+    const panel = html.querySelector('app-detalle-solicitud')!;
+    expect(panel.querySelector('h2')?.textContent?.trim()).toBe('Ana Prueba');
+    expect(panel.textContent).toContain('No registrado');
+    expect(panel.textContent).not.toContain('null');
   });
 
   it('sin solicitudes muestra un mensaje vacío', async () => {
@@ -99,9 +99,11 @@ describe('Asesorias (administrador)', () => {
     expect(html.textContent).toContain('No hay solicitudes con estos filtros');
   });
 
-  it('«Ver» abre el detalle de la solicitud', async () => {
-    const { html, dialog } = await renderizar();
-    Array.from(html.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ver')!.click();
-    expect(dialog.open).toHaveBeenCalledWith(DetalleSolicitud, expect.objectContaining({ data: expect.objectContaining({ nombre_completo: 'Ana Prueba' }) }));
+  it('muestra al lado el detalle de la primera, sin tablas ni ventanas', async () => {
+    const { html } = await renderizar();
+    expect(html.querySelector('table')).toBeNull();
+    expect(html.querySelector('.fila-lista')?.getAttribute('aria-current')).toBe('true');
+    expect(html.querySelector('app-detalle-solicitud h2')?.textContent).toContain('Ana Prueba');
   });
+
 });

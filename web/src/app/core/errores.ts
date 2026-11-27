@@ -35,6 +35,11 @@ export const MENSAJES_AGENDA: Record<string, string> = {
   not_started: 'La cita todavía no ha comenzado.',
   invalid_status: 'Estado no válido.',
   request_not_found: 'La solicitud no existe.',
+  empty_note: 'Escribe la nota antes de guardarla.',
+  specialist_inactive: 'Activa al especialista antes de generar un enlace.',
+  specialist_has_access: 'Este especialista ya tiene acceso.',
+  invitation_not_found: 'No hay un enlace vigente para anular.',
+  note_too_long: 'La nota es demasiado larga (máximo 500 caracteres).',
   status_changed: 'El estado de esta solicitud cambió mientras la veías. Revísala de nuevo.',
 };
 

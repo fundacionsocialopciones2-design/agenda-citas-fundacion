@@ -1,10 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { MatDialog } from '@angular/material/dialog';
 import { describe, expect, it, vi } from 'vitest';
 import { AgendaApi } from '../../core/agenda.api';
 import { Curso, Inscripcion } from '../../core/models';
 import { Cursos } from './cursos';
-import { DetalleInscripcion } from './detalle-inscripcion';
 
 const curso = (extra: Partial<Curso>): Curso => ({
   curso_id: 'id_ingles',
@@ -45,29 +43,28 @@ const inscripcion = (extra: Partial<Inscripcion> = {}): Inscripcion => ({
 
 async function renderizar(inscritos: Inscripcion[] = [inscripcion()]) {
   const api = { cursos: vi.fn().mockResolvedValue(CATALOGO), inscripciones: vi.fn().mockResolvedValue(inscritos) };
-  const dialog = { open: vi.fn() };
-  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }, { provide: MatDialog, useValue: dialog }] });
+  TestBed.configureTestingModule({ providers: [{ provide: AgendaApi, useValue: api }] });
   const fixture = TestBed.createComponent(Cursos);
   await fixture.whenStable();
   fixture.detectChanges();
   const html = fixture.nativeElement as HTMLElement;
-  return { html, api, dialog, fixture };
+  return { html, api, fixture };
 }
 
 describe('Cursos (administrador)', () => {
-  it('no muestra tarjetas de catálogo: solo filtros y tabla', async () => {
+  it('no muestra tarjetas de catálogo: solo filtros y lista', async () => {
     const { html } = await renderizar();
     expect(html.querySelector('.catalogo')).toBeNull();
     expect(html.querySelector('form')).not.toBeNull();
-    expect(html.querySelector('table')).not.toBeNull();
+    expect(html.querySelector('app-lista-detalle')).not.toBeNull();
   });
 
   it('al entrar trae todas las inscripciones y las muestra en la tabla', async () => {
     const { html, api } = await renderizar();
     expect(api.inscripciones).toHaveBeenCalledWith({ cursoId: '', categoriaId: '', estado: '', busqueda: '' });
     expect(html.querySelector('#t-inscritos')?.textContent).toContain('Todas las personas inscritas');
-    expect(html.querySelector('tbody tr')?.textContent).toContain('Ana Prueba');
-    expect(html.querySelector('tbody tr')?.textContent).toContain('Pendiente');
+    expect(html.querySelector('.fila-lista')?.textContent).toContain('Ana Prueba');
+    expect(html.querySelector('.fila-lista')?.textContent).toContain('Pendiente');
   });
 
   it('al elegir en el filtro y buscar, filtra por esa opción', async () => {
@@ -97,9 +94,11 @@ describe('Cursos (administrador)', () => {
     expect(html.textContent).toContain('No hay inscritos con estos filtros');
   });
 
-  it('«Ver» abre el detalle con toda la información de la persona', async () => {
-    const { html, dialog } = await renderizar();
-    Array.from(html.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Ver')!.click();
-    expect(dialog.open).toHaveBeenCalledWith(DetalleInscripcion, expect.objectContaining({ data: expect.objectContaining({ nombre_completo: 'Ana Prueba' }) }));
+  it('muestra al lado el detalle de la primera, sin tablas ni ventanas', async () => {
+    const { html } = await renderizar();
+    expect(html.querySelector('table')).toBeNull();
+    expect(html.querySelector('.fila-lista')?.getAttribute('aria-current')).toBe('true');
+    expect(html.querySelector('app-detalle-inscripcion h2')?.textContent).toContain('Ana Prueba');
   });
+
 });

@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
 import { Curso, ETIQUETA_INSCRIPCION, EstadoInscripcion, FiltrosInscripciones, Inscripcion } from '../../core/models';
@@ -9,6 +8,7 @@ import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
 import { agruparPorCategoria } from './agrupar-catalogo';
 import { DetalleInscripcion } from './detalle-inscripcion';
+import { FilaLista, ListaDetalle } from './lista-detalle';
 
 const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado: '', busqueda: '' };
 
@@ -18,7 +18,7 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
  */
 @Component({
   selector: 'app-cursos',
-  imports: [MatButtonModule, Estado],
+  imports: [MatButtonModule, Estado, ListaDetalle, DetalleInscripcion],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
@@ -81,48 +81,16 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
             @if (inscritos().length === 0) {
               <app-estado icono="school" titulo="No hay inscritos con estos filtros" mensaje="Elige otro curso o cambia los filtros." />
             } @else {
-              <table class="tabla">
-                <caption>
-                  {{ inscritos().length }} {{ inscritos().length === 1 ? 'persona inscrita' : 'personas inscritas' }}{{ inscritos().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Inscripción</th>
-                    <th scope="col">Persona</th>
-                    <th scope="col">Curso</th>
-                    <th scope="col">Contacto</th>
-                    <th scope="col">Ciudad</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col"><span class="solo-lectores">Acciones</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (i of inscritos(); track i.id) {
-                    <tr>
-                      <td data-etiqueta="Inscripción">{{ fecha(i.creado) }}</td>
-                      <td data-etiqueta="Persona">
-                        <strong>{{ i.nombre_completo }}</strong><br />
-                        <small class="ayuda">{{ i.tipo_documento }} {{ i.numero_documento }}</small>
-                      </td>
-                      <td data-etiqueta="Curso">
-                        {{ i.curso }}
-                        @if (i.modalidad) {
-                          <br /><small class="ayuda">{{ i.modalidad }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Contacto">
-                        {{ i.telefono_contacto || i.telefono }}<br />
-                        <small class="ayuda">{{ i.correo }}</small>
-                      </td>
-                      <td data-etiqueta="Ciudad">{{ i.ciudad }}</td>
-                      <td data-etiqueta="Estado"><span class="chip" [class]="'chip chip--' + i.estado">{{ etiqueta[i.estado] }}</span></td>
-                      <td data-etiqueta="Detalle">
-                        <button mat-stroked-button type="button" (click)="ver(i)" [attr.aria-label]="'Ver la información de ' + i.nombre_completo">Ver</button>
-                      </td>
-                    </tr>
+              <p class="ayuda">
+                {{ inscritos().length }} {{ inscritos().length === 1 ? 'persona inscrita' : 'personas inscritas' }}{{ inscritos().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
+              </p>
+              <app-lista-detalle etiqueta="Personas inscritas" [filas]="filas()" [(seleccion)]="seleccion">
+                <ng-template let-id>
+                  @if (porId().get(id); as r) {
+                    <app-detalle-inscripcion [inscripcion]="r" />
                   }
-                </tbody>
-              </table>
+                </ng-template>
+              </app-lista-detalle>
             }
           }
         }
@@ -130,13 +98,13 @@ const SIN_FILTROS: FiltrosInscripciones = { cursoId: '', categoriaId: '', estado
     </div>
   `,
 })
-export class Cursos {
+export class Cursos implements OnInit {
   private readonly api = inject(AgendaApi);
-  private readonly dialog = inject(MatDialog);
+
+  /** Filtro de estado con el que se llega desde «Inicio» (?estado=pendiente). */
+  readonly filtroEstado = input<string | undefined>(undefined, { alias: 'estado' });
 
   protected readonly valor = valorDe;
-  protected readonly fecha = fechaBogota;
-  protected readonly etiqueta = ETIQUETA_INSCRIPCION;
   protected readonly estados = (Object.keys(ETIQUETA_INSCRIPCION) as EstadoInscripcion[]).map((valor) => ({ valor, texto: ETIQUETA_INSCRIPCION[valor] }));
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
@@ -161,7 +129,22 @@ export class Cursos {
     return 'Todas las personas inscritas';
   });
 
-  constructor() {
+  protected readonly seleccion = signal<number | null>(null);
+  protected readonly porId = computed(() => new Map(this.inscritos().map((r) => [r.id, r])));
+  protected readonly filas = computed<FilaLista[]>(() =>
+    this.inscritos().map((r) => ({
+      id: r.id,
+      titulo: r.nombre_completo,
+      fecha: fechaBogota(r.creado),
+      resumen: r.modalidad ? `${r.curso} · ${r.modalidad}` : r.curso,
+      chip: { clave: r.estado, texto: ETIQUETA_INSCRIPCION[r.estado] },
+      destacada: r.estado === 'pendiente',
+    })),
+  );
+
+  ngOnInit(): void {
+    const estado = this.filtroEstado();
+    if (estado && estado in ETIQUETA_INSCRIPCION) this.cambiar('estado', estado);
     this.recargar();
   }
 
@@ -208,9 +191,5 @@ export class Cursos {
   protected limpiar(): void {
     this.filtros.set(SIN_FILTROS);
     void this.buscar();
-  }
-
-  protected ver(i: Inscripcion): void {
-    this.dialog.open(DetalleInscripcion, { data: i, width: '480px' });
   }
 }

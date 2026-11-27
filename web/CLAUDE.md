@@ -45,12 +45,12 @@ web/
     └── app/
         ├── app.ts · app.config.ts · app.routes.ts
         ├── core/           — servicios transversales por tema
-        │   ├── agenda.api.ts · supabase.service.ts · errores.ts · models.ts · tiempo.ts · proximas-citas.ts
+        │   ├── agenda.api.ts · supabase.service.ts · errores.ts · models.ts · tiempo.ts · proximas-citas.ts · urgencias-resumen.service.ts
         │   ├── auth/       — AuthService (sesión/perfil/rol) y guards
         │   └── inactividad/— cierre de sesión por inactividad y su aviso
         ├── features/       — una carpeta por área funcional
         │   ├── acceso/     — ingresar, recuperar y restablecer contraseña
-        │   ├── admin/      — agenda, agenda pendiente (citas abiertas del bot), especialistas, horarios/bloqueos, cursos e inscritos, asesorías y solicitudes (las tres del bot, de solo lectura) y sus diálogos
+        │   ├── admin/      — inicio (resumen de pendientes), agenda, urgencias (con contador en el menú), agenda pendiente (citas abiertas del bot), especialistas, horarios/bloqueos, cursos e inscritos, asesorías y solicitudes (las tres del bot, de solo lectura) y sus diálogos
         │   └── especialista/ — dashboard (inicio), calendario (FullCalendar), lista de próximas citas, detalle
         ├── layout/         — marco.ts: barra superior y menú lateral según rol (mat-sidenav: fijo y contraíble en pantallas anchas, superpuesto con ☰ por debajo de 840 px; el contenido hace scroll dentro de mat-sidenav-content)
         └── shared/         — solo piezas realmente transversales: confirmar, estado, eventos-formulario
@@ -62,6 +62,7 @@ Cada carpeta con reglas propias tiene su `CLAUDE.md` (`core/`, `core/auth/`, `co
 - Reglas Angular 22 de la guía del MCP: sin `standalone: true`, sin `OnPush` explícito, `@Service()` + `inject()`, señales, `input()`/`output()`, control de flujo nativo (`@if`/`@for`), sin `ngClass`/`ngStyle`/`@HostBinding`, Signal Forms en formularios nuevos. Los miembros usados solo en la plantilla son `protected`; los que inicializa Angular son `readonly`.
 - Diálogos: señales + inputs nativos; los ayudantes `valorDe`/`marcadoDe` están en `shared/eventos-formulario.ts`.
 - Estilos: reutilizar las clases globales de `styles.scss` antes de escribir CSS por componente; `.tabla` se apila como tarjetas por debajo de 720 px.
+- **Modo claro / oscuro** (toda la app): cada color es una variable `--app-*` declarada una sola vez en `styles.scss` con `light-dark(claro, oscuro)`; **no escribir colores sueltos en las pantallas** (las únicas excepciones son blanco sobre rojo en insignias y la tarjeta azul «Próxima cita» del Dashboard). El modo lo fija `data-color-scheme` en `<html>` (`core/tema.service.ts`; lo usan también Material, `theme-type: color-scheme`, y FullCalendar). El selector es `shared/selector-tema.ts` (barra superior y pantallas de acceso). `index.html` tiene un script en línea que aplica el modo antes de pintar (tenerlo en cuenta al definir la CSP).
 - Profundidad visual (toda la app): los tokens `--app-sombra`, `--app-sombra-alta`, `--app-borde-suave` y `--app-radio` (16 px) viven en `styles.scss`; `.tarjeta`, `.tabla`, `.estado` y el calendario ya los usan, así que una pantalla nueva solo debe usar esas clases. `.tarjeta--accion` añade elevación al pasar el mouse o con foco (solo para tarjetas con botones; se desactiva con «reducir movimiento»). No usar biseles ni perspectiva 3D literal: baja el contraste.
 - Accesibilidad: etiquetas en todos los campos, `role="alert"`/`status`, objetivos táctiles de 44 px, foco visible.
 - Pruebas: los componentes mockean `AgendaApi`/`MatDialog` con `useValue`; las que dependen del tiempo usan `vi.useFakeTimers()` y `TestBed.tick()` para ejecutar los `effect`.

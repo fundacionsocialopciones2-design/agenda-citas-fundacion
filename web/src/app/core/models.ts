@@ -29,6 +29,12 @@ export interface Especialista {
   profiles: { email: string | null } | null;
 }
 
+/** Enlace de invitación vigente de un especialista sin acceso (admin_invitaciones). */
+export interface Invitacion {
+  specialist_id: string;
+  expires_at: string;
+}
+
 export interface HorarioSemanal {
   id?: string;
   specialist_id?: string;
@@ -114,10 +120,10 @@ export const ETIQUETA_ESTADO: Record<EstadoCita, string> = {
 
 /** Color de cada estado en el calendario y en el dashboard (siempre acompañado de su texto). */
 export const COLOR_ESTADO: Record<EstadoCita, string> = {
-  confirmada: '#1f5aa6',
-  asistida: '#14603f',
-  no_asistio: '#5b6676',
-  cancelada: '#8f2419',
+  confirmada: 'var(--app-estado-confirmada)',
+  asistida: 'var(--app-estado-asistida)',
+  no_asistio: 'var(--app-estado-no-asistio)',
+  cancelada: 'var(--app-estado-cancelada)',
 };
 
 /** Resumen del dashboard del especialista (my_dashboard). Las cifras las calcula la base de datos, en hora de Colombia. */
@@ -279,10 +285,63 @@ export interface CitaPendiente {
   autoriza_datos_at: string;
 }
 
+/** Cifras de la pantalla «Inicio» (admin_inicio). `mas_antigua` es la pendiente que más lleva esperando. */
+export interface Pendientes {
+  total: number;
+  mas_antigua: string | null;
+}
+
+export interface ResumenInicio {
+  hoy: string;
+  urgencias: Pendientes;
+  citas_pendientes: Pendientes;
+  inscripciones: Pendientes;
+  asesorias: Pendientes;
+  citas_hoy: { total: number; por_atender: number };
+}
+
 export interface FiltrosCitasPendientes {
   servicioId: string;
   estado: EstadoSolicitud | '';
   busqueda: string;
+}
+
+// ---------- Urgencias reportadas por WhatsApp ----------
+/** «sin_atender»: pendiente. «en_gestion»: contactado o agendada. «historial»: atendida o cancelada. */
+export type VistaUrgencias = 'sin_atender' | 'en_gestion' | 'historial';
+
+export type AtencionUrgencia = '' | 'sede' | 'domicilio';
+
+export interface FiltrosUrgencias {
+  vista: VistaUrgencias;
+  busqueda: string;
+  atencion: AtencionUrgencia;
+}
+
+/** Una urgencia (admin_urgencias). `detalle` es lo que le pasa a la persona (dato de salud). */
+export interface Urgencia {
+  id: number;
+  creado: string;
+  nombre_completo: string;
+  tipo_documento: string | null;
+  numero_documento: string | null;
+  telefono: string;
+  telefono_contacto: string | null;
+  correo: string | null;
+  modalidad: string | null;
+  direccion: string | null;
+  detalle: string | null;
+  estado: EstadoSolicitud;
+  /** Notas de seguimiento, de la más antigua a la más reciente. */
+  notas: string[];
+  autoriza_datos_at: string;
+}
+
+/** Cifras del contador (admin_urgencias_resumen). `ultima_id` permite notar que llegó una nueva. */
+export interface ResumenUrgencias {
+  sin_atender: number;
+  en_gestion: number;
+  ultima_id: number;
 }
 
 export const ETIQUETA_BLOQUEO: Record<TipoBloqueo, string> = {

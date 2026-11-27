@@ -1,12 +1,15 @@
 @use '@angular/material' as mat;
 
 // Tema Material 3 base + colores de la Fundación Social Opciones (azul y amarillo del logo).
+// El modo (claro u oscuro) lo fija el atributo data-color-scheme de <html> (TemaService; FullCalendar usa el
+// mismo atributo). Cada color se declara una vez con light-dark(claro, oscuro): no escribir colores sueltos en
+// las pantallas, usar estas variables.
 html {
   color-scheme: light;
   @include mat.theme(
     (
       color: (
-        theme-type: light,
+        theme-type: color-scheme,
         primary: mat.$azure-palette,
         tertiary: mat.$yellow-palette,
       ),
@@ -16,32 +19,82 @@ html {
   );
 }
 
-:root {
-  --mat-sys-primary: #1f5aa6;
-  --mat-sys-on-primary: #ffffff;
-  --mat-sys-primary-container: #e4edf9;
-  --mat-sys-on-primary-container: #0f3a70;
-  --mat-sys-secondary-container: #e4edf9;
-  --mat-sys-on-secondary-container: #0f3a70;
-  --mat-sys-surface: #ffffff;
-  --mat-sys-background: #f6f8fb;
-  --mat-sys-on-surface: #1b2a41;
-  --mat-sys-on-surface-variant: #4b5b70;
-  --mat-sys-outline: #8795a8;
-  --mat-sys-outline-variant: #d9e0ea;
-  --mat-sys-error: #a32b20;
+html[data-color-scheme='dark'] {
+  color-scheme: dark;
+}
 
+:root {
+  --app-fondo: light-dark(#f6f8fb, #0f1520);
+  --app-fondo-tinte: light-dark(#eaf1fb, #141f31);
+  --app-superficie: light-dark(#ffffff, #19212f);
+  --app-superficie-2: light-dark(#fafcff, #1b2433);
+  --app-superficie-alta: light-dark(#eef3f9, #222d40);
+  --app-borde: light-dark(#d9e0ea, #36445c);
+  --app-borde-suave: light-dark(#e3e9f2, #2b374c);
+  --app-contorno: light-dark(#8795a8, #8393ac);
+  --app-texto: light-dark(#1b2a41, #e6ecf5);
+  --app-suave: light-dark(#4b5b70, #a9b8cd);
+  --app-primario: light-dark(#1f5aa6, #9dc3ff);
+  --app-primario-texto: light-dark(#ffffff, #08284f);
+  --app-primario-suave: light-dark(#e4edf9, #203a5e);
+  --app-primario-suave-texto: light-dark(#0f3a70, #d3e3fd);
+  --app-activo: light-dark(#dce9fa, #243f66);
+  --app-activo-fin: light-dark(#eaf2fc, #1f3555);
+  --app-resaltado: light-dark(#f1f6fd, #1e2c45);
+  --app-peligro: light-dark(#b3261e, #c2362b);
+  --app-peligro-borde: light-dark(#b3261e, #ff8a7f);
+  --app-peligro-texto: light-dark(#8f2419, #ffb4ab);
+  --app-peligro-suave: light-dark(#fbe5e2, #442220);
+  --app-peligro-fondo: light-dark(#fdf3f2, #331d1e);
+  --app-peligro-linea: light-dark(#e7b6b0, #7d3d37);
+  --app-error: light-dark(#a32b20, #ffb4ab);
+  --app-exito-suave: light-dark(#e2f4ea, #173a2b);
+  --app-exito-texto: light-dark(#14603f, #9fe0bf);
+  --app-ambar-suave: light-dark(#fff1cc, #41330f);
+  --app-ambar-texto: light-dark(#6b4a00, #ffd980);
+  --app-aviso-fondo: light-dark(#fff4d6, #352c14);
+  --app-aviso-texto: light-dark(#5b4300, #ffe29a);
+  --app-aviso-linea: light-dark(#f0d58a, #6f5b20);
+  --app-neutro-suave: light-dark(#edf0f4, #2c3648);
+  --app-neutro-texto: light-dark(#3f4a5a, #cbd5e3);
+  --app-violeta: light-dark(#6a4bbd, #b29cf0);
+  --app-violeta-suave: light-dark(#ede8fa, #322852);
+  --app-violeta-texto: light-dark(#43298a, #d6c8ff);
+  --app-turquesa: light-dark(#0b8070, #4fc3b0);
+  --app-turquesa-suave: light-dark(#ddf3ef, #123b35);
+  --app-turquesa-texto: light-dark(#075a4f, #9be3d6);
+  --app-estado-confirmada: light-dark(#1f5aa6, #2f6fc2);
+  --app-estado-asistida: light-dark(#14603f, #1f7f56);
+  --app-estado-no-asistio: light-dark(#5b6676, #697589);
+  --app-estado-cancelada: light-dark(#8f2419, #c4483a);
   --app-acento: #f2b01e;
-  --app-fondo: #f6f8fb;
-  --app-borde: #d9e0ea;
-  --app-texto: #1b2a41;
-  --app-suave: #4b5b70;
   --app-radio: 16px;
 
+  --mat-sys-primary: var(--app-primario);
+  --mat-sys-on-primary: var(--app-primario-texto);
+  --mat-sys-primary-container: var(--app-primario-suave);
+  --mat-sys-on-primary-container: var(--app-primario-suave-texto);
+  --mat-sys-secondary-container: var(--app-primario-suave);
+  --mat-sys-on-secondary-container: var(--app-primario-suave-texto);
+  --mat-sys-surface: var(--app-superficie);
+  --mat-sys-surface-container-lowest: var(--app-superficie);
+  --mat-sys-surface-container-low: var(--app-superficie);
+  --mat-sys-surface-container: var(--app-superficie);
+  --mat-sys-surface-container-high: var(--app-superficie);
+  --mat-sys-surface-container-highest: var(--app-superficie-alta);
+  --mat-sys-background: var(--app-fondo);
+  --mat-sys-on-background: var(--app-texto);
+  --mat-sys-on-surface: var(--app-texto);
+  --mat-sys-on-surface-variant: var(--app-suave);
+  --mat-sys-outline: var(--app-contorno);
+  --mat-sys-outline-variant: var(--app-borde);
+  --mat-sys-error: var(--app-error);
+
   // Profundidad: sombra de dos capas (una corta y nítida + una amplia y difusa) con el tinte azul de la fundación.
-  --app-sombra: 0 1px 2px rgba(16, 42, 84, 0.06), 0 6px 18px rgba(16, 42, 84, 0.08);
-  --app-sombra-alta: 0 2px 4px rgba(16, 42, 84, 0.08), 0 14px 32px rgba(16, 42, 84, 0.16);
-  --app-borde-suave: #e3e9f2;
+  --app-sombra: 0 1px 2px light-dark(rgba(16, 42, 84, 0.06), rgba(0, 0, 0, 0.4)),
+    0 6px 18px light-dark(rgba(16, 42, 84, 0.08), rgba(0, 0, 0, 0.32));
+  --app-sombra-alta: 0 2px 4px light-dark(rgba(16, 42, 84, 0.08), rgba(0, 0, 0, 0.45)),
+    0 14px 32px light-dark(rgba(16, 42, 84, 0.16), rgba(0, 0, 0, 0.5));
 
   --mat-dialog-container-shape: 16px;
 }
@@ -61,8 +114,12 @@ body {
   line-height: 1.5;
 }
 
+a {
+  color: var(--app-primario);
+}
+
 :focus-visible {
-  outline: 3px solid #1f5aa6;
+  outline: 3px solid var(--app-primario);
   outline-offset: 2px;
 }
 
@@ -111,7 +168,7 @@ h2 {
   color: var(--app-suave);
 }
 .tarjeta {
-  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  background: linear-gradient(180deg, var(--app-superficie) 0%, var(--app-superficie-2) 100%);
   border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   padding: 20px;
@@ -161,8 +218,8 @@ h2 {
   padding: 0 10px;
   margin-left: 6px;
   border-radius: 999px;
-  background: #e4edf9;
-  color: #0f3a70;
+  background: var(--app-primario-suave);
+  color: var(--app-primario-suave-texto);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -173,11 +230,84 @@ h2 {
   outline: none;
 }
 
+// ---------- Panel de detalle (lista + detalle del administrador) ----------
+.detalle-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  h2,
+  h3,
+  p,
+  form.gestion {
+    margin: 0;
+  }
+  h2 {
+    font-size: 1.25rem;
+    overflow-wrap: anywhere;
+  }
+  h3 {
+    margin-top: 8px;
+    font-size: 1rem;
+  }
+}
+.detalle-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+// Texto destacado: lo que contó la persona o el día y la hora que pidió.
+.destacado {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--app-fondo);
+  overflow-wrap: anywhere;
+}
+.destacado__etiqueta {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--app-suave);
+}
+.destacado__texto {
+  white-space: pre-wrap;
+}
+.gestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+
+  .campo {
+    flex: 1 1 180px;
+    margin: 0;
+  }
+}
+.datos {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+
+  dt {
+    font-weight: 700;
+    color: var(--app-suave);
+  }
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
 // ---------- Tablas que se apilan en móvil ----------
 .tabla {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
+  background: var(--app-superficie);
   border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   overflow: hidden;
@@ -197,7 +327,7 @@ h2 {
   vertical-align: middle;
 }
 .tabla th {
-  background: #eef3f9;
+  background: var(--app-superficie-alta);
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--app-suave);
@@ -228,7 +358,7 @@ h2 {
     overflow: visible;
   }
   .tabla tr {
-    background: #fff;
+    background: var(--app-superficie);
     border: 1px solid var(--app-borde-suave);
     border-radius: var(--app-radio);
     margin-bottom: 12px;
@@ -263,47 +393,47 @@ h2 {
 }
 .chip--confirmada,
 .chip--activo {
-  background: #e2f4ea;
-  color: #14603f;
+  background: var(--app-exito-suave);
+  color: var(--app-exito-texto);
 }
 .chip--cancelada,
 .chip--inactivo {
-  background: #fbe5e2;
-  color: #8f2419;
+  background: var(--app-peligro-suave);
+  color: var(--app-peligro-texto);
 }
 .chip--asistida {
-  background: #e4edf9;
-  color: #0f3a70;
+  background: var(--app-primario-suave);
+  color: var(--app-primario-suave-texto);
 }
 .chip--no_asistio {
-  background: #edf0f4;
-  color: #3f4a5a;
+  background: var(--app-neutro-suave);
+  color: var(--app-neutro-texto);
 }
 // Estados de una inscripción a un curso
 .chip--pendiente {
-  background: #fff1cc;
-  color: #6b4a00;
+  background: var(--app-ambar-suave);
+  color: var(--app-ambar-texto);
 }
 .chip--contactado {
-  background: #e4edf9;
-  color: #0f3a70;
+  background: var(--app-primario-suave);
+  color: var(--app-primario-suave-texto);
 }
 .chip--matriculado {
-  background: #e2f4ea;
-  color: #14603f;
+  background: var(--app-exito-suave);
+  color: var(--app-exito-texto);
 }
 .chip--cancelado {
-  background: #fbe5e2;
-  color: #8f2419;
+  background: var(--app-peligro-suave);
+  color: var(--app-peligro-texto);
 }
 // Estados de una solicitud de asesoría (pendiente, contactado y cancelada reutilizan los de arriba)
 .chip--agendada {
-  background: #ede8fa;
-  color: #43298a;
+  background: var(--app-violeta-suave);
+  color: var(--app-violeta-texto);
 }
 .chip--atendida {
-  background: #e2f4ea;
-  color: #14603f;
+  background: var(--app-exito-suave);
+  color: var(--app-exito-texto);
 }
 
 // ---------- Estados: carga, vacío, error, conflicto ----------
@@ -314,7 +444,7 @@ h2 {
   gap: 8px;
   text-align: center;
   padding: 40px 16px;
-  background: #fff;
+  background: var(--app-superficie);
   border: 1px dashed var(--app-borde);
   border-radius: var(--app-radio);
   color: var(--app-suave);
@@ -325,9 +455,9 @@ h2 {
 }
 .estado--error {
   border-style: solid;
-  border-color: #e7b6b0;
-  background: #fdf3f2;
-  color: #8f2419;
+  border-color: var(--app-peligro-linea);
+  background: var(--app-peligro-fondo);
+  color: var(--app-peligro-texto);
 }
 .aviso {
   display: flex;
@@ -335,14 +465,14 @@ h2 {
   align-items: flex-start;
   padding: 12px 14px;
   border-radius: 10px;
-  background: #fff4d6;
-  color: #5b4300;
-  border: 1px solid #f0d58a;
+  background: var(--app-aviso-fondo);
+  color: var(--app-aviso-texto);
+  border: 1px solid var(--app-aviso-linea);
 }
 .aviso--error {
-  background: #fdf3f2;
-  color: #8f2419;
-  border-color: #e7b6b0;
+  background: var(--app-peligro-fondo);
+  color: var(--app-peligro-texto);
+  border-color: var(--app-peligro-linea);
 }
 .aviso ul {
   margin: 6px 0 0;
@@ -361,7 +491,17 @@ h2 {
 // ---------- FullCalendar ----------
 full-calendar {
   display: block;
-  background: #fff;
+  background: var(--app-superficie);
+  // La paleta de FullCalendar se alinea con la de la app; las citas llevan siempre texto blanco.
+  --fc-monarch-background: var(--app-superficie);
+  --fc-monarch-foreground: var(--app-texto);
+  --fc-monarch-border: var(--app-borde);
+  --fc-monarch-strong-border: var(--app-contorno);
+  --fc-monarch-event-contrast: #ffffff;
+  --fc-monarch-tertiary: var(--app-acento);
+  --fc-monarch-tertiary-foreground: #1b2a41;
+  --fc-monarch-tertiary-over: #ffc23d;
+  --fc-monarch-tertiary-down: #ffcb5c;
   border: 1px solid var(--app-borde-suave);
   border-radius: var(--app-radio);
   padding: 8px;
@@ -396,8 +536,8 @@ mat-dialog-content {
   padding: 8px 12px;
   font: inherit;
   color: var(--app-texto);
-  background: #fff;
-  border: 1px solid var(--mat-sys-outline);
+  background: var(--app-superficie);
+  border: 1px solid var(--app-contorno);
   border-radius: 10px;
 }
 .campo textarea {
@@ -407,13 +547,13 @@ mat-dialog-content {
 .campo input:focus-visible,
 .campo select:focus-visible,
 .campo textarea:focus-visible {
-  outline: 3px solid #1f5aa6;
+  outline: 3px solid var(--app-primario);
   outline-offset: 1px;
-  border-color: #1f5aa6;
+  border-color: var(--app-primario);
 }
 .campo input[aria-invalid='true'],
 .campo select[aria-invalid='true'] {
-  border: 2px solid #a32b20;
+  border: 2px solid var(--app-error);
 }
 .campo .ayuda {
   font-size: 0.85rem;
@@ -422,7 +562,7 @@ mat-dialog-content {
 .campo .error {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #a32b20;
+  color: var(--app-error);
 }
 .campo--check {
   flex-direction: row;

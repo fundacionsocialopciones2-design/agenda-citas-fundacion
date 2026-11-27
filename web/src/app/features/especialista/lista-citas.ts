@@ -116,10 +116,10 @@ const DIAS_HACIA_ADELANTE = 400;
       white-space: nowrap;
     }
     tr.proxima td {
-      background: #f1f6fd;
+      background: var(--app-resaltado);
     }
     tr.proxima td:first-child {
-      box-shadow: inset 4px 0 0 #1f5aa6;
+      box-shadow: inset 4px 0 0 var(--app-primario);
     }
   `,
 })

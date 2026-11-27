@@ -1,168 +1,124 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AgendaApi } from '../../core/agenda.api';
 import { ErrorApi, mensajeDeError } from '../../core/errores';
 import { CitaPendiente, ETIQUETA_SOLICITUD, EstadoSolicitud } from '../../core/models';
 import { fechaHoraBogota } from '../../core/tiempo';
 import { valorDe } from '../../shared/eventos-formulario';
-
-/** Valor con el que se cierra el detalle cuando la solicitud cambió (la lista debe recargarse). */
-export type ResultadoCitaPendiente = 'actualizada';
+import { enlaceLlamada, enlaceWhatsApp, telefonoParaLlamar } from './contacto';
 
 /**
- * Toda la información de una cita abierta del bot (lo que la persona pidió y cómo contactarla) y el cambio de
- * estado con el que el administrador lleva su gestión. Cambiar el estado no crea la cita ni avisa a la persona.
+ * Panel de una cita abierta del bot (lo que la persona pidió y cómo contactarla) con el cambio de estado con el
+ * que el administrador lleva su gestión. Cambiar el estado no crea la cita ni avisa a la persona.
  */
 @Component({
   selector: 'app-detalle-cita-pendiente',
-  imports: [MatDialogModule, MatButtonModule],
+  imports: [MatButtonModule, MatIconModule],
+  host: { class: 'detalle-panel' },
   template: `
-    <h2 mat-dialog-title>{{ c.nombre_completo }}</h2>
-    <mat-dialog-content>
-      <p class="pedido">
-        <span class="pedido__etiqueta">Día y hora que pidió</span>
-        <strong>{{ c.preferencia || 'No lo indicó' }}</strong>
-      </p>
+    @let c = cita();
+    <div class="detalle-cabecera">
+      <h2 tabindex="-1">{{ c.nombre_completo }}</h2>
+      <span class="chip" [class]="'chip chip--' + c.estado">{{ etiqueta[c.estado] }}</span>
+    </div>
+    <p class="destacado">
+      <span class="destacado__etiqueta">Día y hora que pidió</span>
+      <strong>{{ c.preferencia || 'No lo indicó' }}</strong>
+    </p>
+    <div class="acciones">
+      <a mat-flat-button [href]="llamar()">
+        <mat-icon aria-hidden="true">call</mat-icon>
+        Llamar al {{ telefono() }}
+      </a>
+      <a mat-stroked-button [href]="whatsapp()" target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp (se abre en otra pestaña)">
+        <mat-icon aria-hidden="true">chat</mat-icon>
+        WhatsApp
+      </a>
+    </div>
 
-      <form class="gestion" (submit)="$event.preventDefault(); guardar()">
-        @if (error()) {
-          <div class="aviso aviso--error" role="alert">{{ error() }}</div>
-        }
-        <div class="gestion__fila">
-          <div class="campo gestion__campo">
-            <label for="d-estado">Estado de la gestión</label>
-            <select id="d-estado" [disabled]="ocupado()" (change)="elegir(valor($event))">
-              @for (e of estados; track e.valor) {
-                <option [value]="e.valor" [selected]="estado() === e.valor">{{ e.texto }}</option>
-              }
-            </select>
-          </div>
-          <button mat-flat-button type="submit" [disabled]="ocupado() || estado() === c.estado">
-            {{ ocupado() ? 'Guardando…' : 'Guardar estado' }}
-          </button>
-        </div>
-      </form>
-
-      <dl class="detalle">
-        <dt>Servicio</dt>
-        <dd>{{ c.servicio }}</dd>
-        @if (c.grupo) {
-          <dt>Grupo</dt>
-          <dd>{{ c.grupo }}</dd>
-        }
-        <dt>Motivo</dt>
-        <dd>{{ c.motivo || 'No registrado' }}</dd>
-        <dt>Solicitud</dt>
-        <dd>{{ fecha(c.creado) }}</dd>
-        <dt>Documento</dt>
-        <dd>{{ c.numero_documento ? c.tipo_documento + ' ' + c.numero_documento : 'No registrado' }}</dd>
-        <dt>WhatsApp</dt>
-        <dd><a [href]="'tel:+' + c.telefono" [attr.aria-label]="'Llamar al ' + c.telefono">{{ c.telefono }}</a></dd>
-        <dt>Teléfono de contacto</dt>
-        <dd>
-          @if (c.telefono_contacto) {
-            <a [href]="'tel:' + c.telefono_contacto" [attr.aria-label]="'Llamar al ' + c.telefono_contacto">{{ c.telefono_contacto }}</a>
-          } @else {
-            <span class="ayuda">El mismo de WhatsApp</span>
+    @if (error()) {
+      <div class="aviso aviso--error" role="alert">{{ error() }}</div>
+    }
+    <form class="gestion" (submit)="$event.preventDefault(); guardar()">
+      <div class="campo">
+        <label for="d-estado">Estado de la gestión</label>
+        <select id="d-estado" [disabled]="ocupado()" (change)="elegir(valor($event))">
+          @for (e of estados; track e.valor) {
+            <option [value]="e.valor" [selected]="estado() === e.valor">{{ e.texto }}</option>
           }
-        </dd>
-        @if (c.correo) {
-          <dt>Correo</dt>
-          <dd><a [href]="'mailto:' + c.correo">{{ c.correo }}</a></dd>
-        }
-        <dt>Atención</dt>
-        <dd>{{ c.modalidad || 'No indicada' }}</dd>
-        @if (c.direccion) {
-          <dt>Dirección</dt>
-          <dd>{{ c.direccion }}</dd>
-        }
-        <dt>Autorizó datos</dt>
-        <dd>{{ fecha(c.autoriza_datos_at) }}</dd>
-      </dl>
-      @if (c.detalle) {
-        <h3>Lo que contó la persona</h3>
-        <p class="caso">{{ c.detalle }}</p>
+        </select>
+      </div>
+      <button mat-flat-button type="submit" [disabled]="ocupado() || estado() === c.estado">
+        {{ ocupado() ? 'Guardando…' : 'Guardar estado' }}
+      </button>
+    </form>
+
+    <dl class="datos">
+      <dt>Servicio</dt>
+      <dd>{{ c.servicio }}</dd>
+      @if (c.grupo) {
+        <dt>Grupo</dt>
+        <dd>{{ c.grupo }}</dd>
       }
-      @if (c.notas) {
-        <h3>Notas</h3>
-        <p class="caso">{{ c.notas }}</p>
+      <dt>Motivo</dt>
+      <dd>{{ c.motivo || 'No registrado' }}</dd>
+      <dt>Solicitud</dt>
+      <dd>{{ fecha(c.creado) }}</dd>
+      <dt>Documento</dt>
+      <dd>{{ c.numero_documento ? c.tipo_documento + ' ' + c.numero_documento : 'No registrado' }}</dd>
+      <dt>WhatsApp</dt>
+      <dd>{{ c.telefono }}</dd>
+      <dt>Teléfono de contacto</dt>
+      <dd>{{ c.telefono_contacto || 'El mismo de WhatsApp' }}</dd>
+      @if (c.correo) {
+        <dt>Correo</dt>
+        <dd><a [href]="'mailto:' + c.correo">{{ c.correo }}</a></dd>
       }
-      <p class="ayuda">Cambiar el estado no crea la cita en la agenda ni envía un mensaje a la persona.</p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" mat-dialog-close cdkFocusInitial [disabled]="ocupado()">Cerrar</button>
-    </mat-dialog-actions>
-  `,
-  styles: `
-    .pedido {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      margin: 0 0 16px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: var(--app-fondo);
+      <dt>Atención</dt>
+      <dd>{{ c.modalidad || 'No indicada' }}</dd>
+      @if (c.direccion) {
+        <dt>Dirección</dt>
+        <dd>{{ c.direccion }}</dd>
+      }
+      <dt>Autorizó datos</dt>
+      <dd>{{ fecha(c.autoriza_datos_at) }}</dd>
+    </dl>
+    @if (c.detalle) {
+      <h3>Lo que contó la persona</h3>
+      <p class="destacado destacado__texto">{{ c.detalle }}</p>
     }
-    .pedido__etiqueta {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--app-suave);
+    @if (c.notas) {
+      <h3>Notas</h3>
+      <p class="destacado destacado__texto">{{ c.notas }}</p>
     }
-    .gestion {
-      margin: 0 0 16px;
-    }
-    .gestion__fila {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 12px;
-    }
-    .gestion__campo {
-      flex: 1 1 200px;
-      margin: 0;
-    }
-    .detalle {
-      display: grid;
-      grid-template-columns: max-content 1fr;
-      gap: 8px 16px;
-      margin: 0;
-    }
-    dt {
-      font-weight: 700;
-      color: var(--app-suave);
-    }
-    dd {
-      margin: 0;
-      overflow-wrap: anywhere;
-    }
-    h3 {
-      margin: 16px 0 6px;
-      font-size: 1rem;
-    }
-    .caso {
-      margin: 0;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: var(--app-fondo);
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
+    <p class="ayuda">Cambiar el estado no crea la cita en la agenda ni envía un mensaje a la persona.</p>
   `,
 })
 export class DetalleCitaPendiente {
-  protected readonly c = inject<CitaPendiente>(MAT_DIALOG_DATA);
-  private readonly ref = inject(MatDialogRef<DetalleCitaPendiente, ResultadoCitaPendiente>);
+  readonly cita = input.required<CitaPendiente>();
+  /** Se guardó el estado (o lo que se veía ya no era lo guardado): hay que volver a consultar. */
+  readonly cambiada = output<void>();
+  /** Mientras guarda, la pantalla no deja cambiar de solicitud. */
+  readonly ocupado = signal(false);
+
   private readonly api = inject(AgendaApi);
   private readonly aviso = inject(MatSnackBar);
+  private readonly destruccion = inject(DestroyRef);
 
   protected readonly valor = valorDe;
   protected readonly fecha = fechaHoraBogota;
+  protected readonly etiqueta = ETIQUETA_SOLICITUD;
   protected readonly estados = (Object.keys(ETIQUETA_SOLICITUD) as EstadoSolicitud[]).map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] }));
 
-  protected readonly estado = signal<EstadoSolicitud>(this.c.estado);
-  protected readonly ocupado = signal(false);
+  protected readonly llamar = computed(() => enlaceLlamada(this.cita()));
+  protected readonly whatsapp = computed(() => enlaceWhatsApp(this.cita()));
+  protected readonly telefono = computed(() => telefonoParaLlamar(this.cita()));
+
+  /** Aparte para que una recarga sin cambio de estado no borre lo elegido en la lista. */
+  private readonly estadoGuardado = computed(() => this.cita().estado);
+  protected readonly estado = linkedSignal(() => this.estadoGuardado());
   protected readonly error = signal<string | null>(null);
 
   protected elegir(estado: string): void {
@@ -170,28 +126,29 @@ export class DetalleCitaPendiente {
   }
 
   protected async guardar(): Promise<void> {
+    const { id, estado: actual } = this.cita();
     const nuevo = this.estado();
-    if (this.ocupado() || nuevo === this.c.estado) return;
+    if (this.ocupado() || nuevo === actual) return;
     this.ocupado.set(true);
     this.error.set(null);
-    this.ref.disableClose = true;
     try {
-      await this.api.cambiarEstadoCitaPendiente(this.c.id, this.c.estado, nuevo);
+      await this.api.cambiarEstadoCitaPendiente(id, actual, nuevo);
       this.terminar(`Estado actualizado a «${ETIQUETA_SOLICITUD[nuevo]}».`);
     } catch (e) {
-      // Si lo que se ve ya no es lo que hay guardado, se cierra para que la lista se vuelva a cargar.
+      // Si lo que se ve ya no es lo que hay guardado, se avisa y se vuelve a consultar.
       if (e instanceof ErrorApi && (e.codigo === 'status_changed' || e.codigo === 'request_not_found')) {
         this.terminar(e.message);
       } else {
         this.error.set(mensajeDeError(e));
-        this.ref.disableClose = false;
-        this.ocupado.set(false);
       }
+    } finally {
+      this.ocupado.set(false);
     }
   }
 
   private terminar(mensaje: string): void {
     this.aviso.open(mensaje, 'Cerrar', { duration: 5000 });
-    this.ref.close('actualizada');
+    // Si se salió de la pantalla mientras guardaba, ya no hay a quién avisar.
+    if (!this.destruccion.destroyed) this.cambiada.emit();
   }
 }

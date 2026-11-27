@@ -228,9 +228,9 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
       gap: 16px;
     }
     .cifra {
-      --tono: #1f5aa6;
-      --tono-fondo: #e4edf9;
-      --tono-texto: #0f3a70;
+      --tono: var(--app-primario);
+      --tono-fondo: var(--app-primario-suave);
+      --tono-texto: var(--app-primario-suave-texto);
       position: relative;
       overflow: hidden;
       display: flex;
@@ -246,24 +246,24 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
       background: var(--tono);
     }
     .cifra--verde {
-      --tono: #0b8070;
-      --tono-fondo: #ddf3ef;
-      --tono-texto: #075a4f;
+      --tono: var(--app-turquesa);
+      --tono-fondo: var(--app-turquesa-suave);
+      --tono-texto: var(--app-turquesa-texto);
     }
     .cifra--violeta {
-      --tono: #6a4bbd;
-      --tono-fondo: #ede8fa;
-      --tono-texto: #43298a;
+      --tono: var(--app-violeta);
+      --tono-fondo: var(--app-violeta-suave);
+      --tono-texto: var(--app-violeta-texto);
     }
     .cifra--rojo {
-      --tono: #b8392b;
-      --tono-fondo: #fbe5e2;
-      --tono-texto: #8f2419;
+      --tono: var(--app-peligro-borde);
+      --tono-fondo: var(--app-peligro-suave);
+      --tono-texto: var(--app-peligro-texto);
     }
     .cifra--ambar {
-      --tono: #f2b01e;
-      --tono-fondo: #fff1cc;
-      --tono-texto: #6b4a00;
+      --tono: var(--app-acento);
+      --tono-fondo: var(--app-ambar-suave);
+      --tono-texto: var(--app-ambar-texto);
     }
     .cifra__icono {
       display: grid;
@@ -437,8 +437,8 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
       padding: 0 10px;
       margin-left: 6px;
       border-radius: 999px;
-      background: #e4edf9;
-      color: #0f3a70;
+      background: var(--app-primario-suave);
+      color: var(--app-primario-suave-texto);
       text-align: center;
       font-variant-numeric: tabular-nums;
     }
@@ -460,8 +460,8 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
       width: 72px;
       height: 72px;
       border-radius: 50%;
-      background: #e4edf9;
-      color: #1f5aa6;
+      background: var(--app-primario-suave);
+      color: var(--app-primario);
       box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.05);
     }
     .vacio__icono mat-icon {
@@ -470,11 +470,11 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
       font-size: 40px;
     }
     .vacio--bien {
-      color: #14603f;
+      color: var(--app-exito-texto);
     }
     .vacio--bien .vacio__icono {
-      background: #ddf3e6;
-      color: #14603f;
+      background: var(--app-exito-suave);
+      color: var(--app-exito-texto);
     }
     .citas {
       list-style: none;
@@ -529,7 +529,7 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
     .barras__barra {
       width: min(38px, 70%);
       min-height: 3px;
-      background: linear-gradient(180deg, #4c8ad8 0%, #1f5aa6 100%);
+      background: linear-gradient(180deg, light-dark(#4c8ad8, #8fbaf5) 0%, light-dark(#1f5aa6, #4c8ad8) 100%);
       border-radius: 6px 6px 0 0;
       box-shadow: 0 3px 8px rgba(31, 90, 166, 0.28);
     }
@@ -586,10 +586,10 @@ const ORDEN_ESTADOS: EstadoCita[] = ['confirmada', 'asistida', 'no_asistio', 'ca
     .estados__pista {
       grid-column: 1 / -1;
       height: 14px;
-      background: #eef2f8;
+      background: var(--app-superficie-alta);
       border-radius: 999px;
       overflow: hidden;
-      box-shadow: inset 0 1px 3px rgba(16, 42, 84, 0.12);
+      box-shadow: inset 0 1px 3px light-dark(rgba(16, 42, 84, 0.12), rgba(0, 0, 0, 0.4));
     }
     .estados__barra {
       display: block;

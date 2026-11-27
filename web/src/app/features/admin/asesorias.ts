@@ -1,6 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
 import { ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosAsesorias, SolicitudAsesoria, TipoAsesoria } from '../../core/models';
@@ -9,6 +8,7 @@ import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
 import { agruparPorCategoria } from './agrupar-catalogo';
 import { DetalleSolicitud } from './detalle-solicitud';
+import { FilaLista, ListaDetalle } from './lista-detalle';
 
 const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado: '', busqueda: '' };
 
@@ -18,7 +18,7 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
  */
 @Component({
   selector: 'app-asesorias',
-  imports: [MatButtonModule, Estado],
+  imports: [MatButtonModule, Estado, ListaDetalle, DetalleSolicitud],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
@@ -81,50 +81,16 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
             @if (solicitudes().length === 0) {
               <app-estado icono="gavel" titulo="No hay solicitudes con estos filtros" mensaje="Cuando alguien pida una asesoría por WhatsApp, aparecerá aquí." />
             } @else {
-              <table class="tabla">
-                <caption>
-                  {{ solicitudes().length }} {{ solicitudes().length === 1 ? 'solicitud' : 'solicitudes' }}{{ solicitudes().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Solicitud</th>
-                    <th scope="col">Persona</th>
-                    <th scope="col">Asesoría</th>
-                    <th scope="col">Contacto</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col"><span class="solo-lectores">Acciones</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (s of solicitudes(); track s.id) {
-                    <tr>
-                      <td data-etiqueta="Solicitud">{{ fecha(s.creado) }}</td>
-                      <td data-etiqueta="Persona">
-                        <strong>{{ s.nombre_completo }}</strong>
-                        @if (s.numero_documento) {
-                          <br /><small class="ayuda">{{ s.tipo_documento }} {{ s.numero_documento }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Asesoría">
-                        {{ s.servicio }}
-                        @if (s.categoria) {
-                          <br /><small class="ayuda">{{ s.categoria }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Contacto">
-                        {{ s.telefono_contacto || s.telefono }}
-                        @if (s.correo) {
-                          <br /><small class="ayuda">{{ s.correo }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Estado"><span class="chip" [class]="'chip chip--' + s.estado">{{ etiqueta[s.estado] }}</span></td>
-                      <td data-etiqueta="Detalle">
-                        <button mat-stroked-button type="button" (click)="ver(s)" [attr.aria-label]="'Ver la solicitud de ' + s.nombre_completo">Ver</button>
-                      </td>
-                    </tr>
+              <p class="ayuda">
+                {{ solicitudes().length }} {{ solicitudes().length === 1 ? 'solicitud' : 'solicitudes' }}{{ solicitudes().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
+              </p>
+              <app-lista-detalle etiqueta="Solicitudes de asesoría" [filas]="filas()" [(seleccion)]="seleccion">
+                <ng-template let-id>
+                  @if (porId().get(id); as r) {
+                    <app-detalle-solicitud [solicitud]="r" />
                   }
-                </tbody>
-              </table>
+                </ng-template>
+              </app-lista-detalle>
             }
           }
         }
@@ -132,13 +98,13 @@ const SIN_FILTROS: FiltrosAsesorias = { servicioId: '', categoriaId: '', estado:
     </div>
   `,
 })
-export class Asesorias {
+export class Asesorias implements OnInit {
   private readonly api = inject(AgendaApi);
-  private readonly dialog = inject(MatDialog);
+
+  /** Filtro de estado con el que se llega desde «Inicio» (?estado=pendiente). */
+  readonly filtroEstado = input<string | undefined>(undefined, { alias: 'estado' });
 
   protected readonly valor = valorDe;
-  protected readonly fecha = fechaBogota;
-  protected readonly etiqueta = ETIQUETA_SOLICITUD;
   protected readonly estados = (Object.keys(ETIQUETA_SOLICITUD) as EstadoSolicitud[]).map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] }));
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
@@ -163,7 +129,22 @@ export class Asesorias {
     return 'Todas las solicitudes de asesoría';
   });
 
-  constructor() {
+  protected readonly seleccion = signal<number | null>(null);
+  protected readonly porId = computed(() => new Map(this.solicitudes().map((r) => [r.id, r])));
+  protected readonly filas = computed<FilaLista[]>(() =>
+    this.solicitudes().map((r) => ({
+      id: r.id,
+      titulo: r.nombre_completo,
+      fecha: fechaBogota(r.creado),
+      resumen: r.servicio,
+      chip: { clave: r.estado, texto: ETIQUETA_SOLICITUD[r.estado] },
+      destacada: r.estado === 'pendiente',
+    })),
+  );
+
+  ngOnInit(): void {
+    const estado = this.filtroEstado();
+    if (estado && estado in ETIQUETA_SOLICITUD) this.cambiar('estado', estado);
     this.recargar();
   }
 
@@ -210,9 +191,5 @@ export class Asesorias {
   protected limpiar(): void {
     this.filtros.set(SIN_FILTROS);
     void this.buscar();
-  }
-
-  protected ver(s: SolicitudAsesoria): void {
-    this.dialog.open(DetalleSolicitud, { data: s, width: '520px' });
   }
 }

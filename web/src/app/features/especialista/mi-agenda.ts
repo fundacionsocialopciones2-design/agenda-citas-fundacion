@@ -93,7 +93,7 @@ const capitalizar = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1
       border: 1px solid var(--mat-sys-outline);
       border-radius: 999px;
       overflow: hidden;
-      background: #fff;
+      background: var(--app-superficie);
     }
     .vista {
       min-height: 44px;
@@ -106,8 +106,8 @@ const capitalizar = (t: string): string => t.charAt(0).toUpperCase() + t.slice(1
       cursor: pointer;
     }
     .vista[aria-pressed='true'] {
-      background: #1f5aa6;
-      color: #fff;
+      background: var(--app-primario);
+      color: var(--app-primario-texto);
     }
     .oculto {
       display: none !important;

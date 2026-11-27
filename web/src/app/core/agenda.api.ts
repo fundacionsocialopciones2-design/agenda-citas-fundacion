@@ -16,14 +16,19 @@ import {
   FiltrosCitas,
   FiltrosCitasPendientes,
   FiltrosInscripciones,
+  FiltrosUrgencias,
   HorarioSemanal,
+  Invitacion,
   Inscripcion,
   ResumenEspecialista,
+  ResumenInicio,
+  ResumenUrgencias,
   ServicioCita,
   SolicitudAsesoria,
   TipoAsesoria,
   TipoBloqueo,
   TipoDocumento,
+  Urgencia,
 } from './models';
 import { SupabaseService } from './supabase.service';
 import { bogotaAIso, sumarDias } from './tiempo';
@@ -83,8 +88,13 @@ export class AgendaApi {
   }
 
   // ---------- Administración de usuarios (Edge Function con verificación de admin en servidor) ----------
-  private async adminUsuarios<T>(accion: string, datos: Record<string, unknown>): Promise<T> {
-    const { data, error } = await this.sb.functions.invoke('admin-users', { body: { action: accion, ...datos } });
+  private adminUsuarios<T>(accion: string, datos: Record<string, unknown>): Promise<T> {
+    return this.funcion<T>('admin-users', { action: accion, ...datos });
+  }
+
+  /** Llama una Edge Function; sus errores traen un mensaje ya apto para mostrar. */
+  private async funcion<T>(nombre: string, body: Record<string, unknown>): Promise<T> {
+    const { data, error } = await this.sb.functions.invoke(nombre, { body });
     if (error) {
       let cuerpo: { code?: string; message?: string; cita_ids?: string[] } | null = null;
       if (error instanceof FunctionsHttpError) cuerpo = await error.context.json().catch(() => null);
@@ -104,6 +114,35 @@ export class AgendaApi {
 
   cambiarEstadoEspecialista(specialistId: string, activo: boolean): Promise<void> {
     return this.adminUsuarios('set_active', { specialist_id: specialistId, active: activo });
+  }
+
+  // ---------- Invitaciones de acceso para especialistas (las funciones admin_* exigen is_admin()) ----------
+  async invitaciones(): Promise<Invitacion[]> {
+    return this.datos(await this.sb.rpc('admin_invitaciones')) as Invitacion[];
+  }
+
+  /** El token solo se entrega aquí, una vez: en la base queda su huella. Crear otro anula el anterior. */
+  async crearInvitacion(specialistId: string): Promise<{ token: string; expires_at: string }> {
+    const r = this.datos(await this.sb.rpc('admin_crear_invitacion', { p_specialist_id: specialistId })) as RespuestaRpc & {
+      token: string;
+      expires_at: string;
+    };
+    this.verificar(r);
+    return { token: r.token, expires_at: r.expires_at };
+  }
+
+  async anularInvitacion(specialistId: string): Promise<void> {
+    this.verificar(this.datos(await this.sb.rpc('admin_anular_invitacion', { p_specialist_id: specialistId })) as RespuestaRpc);
+  }
+
+  /** Público (sin sesión): devuelve el nombre del especialista si el enlace sirve. */
+  async consultarInvitacion(token: string): Promise<string> {
+    return (await this.funcion<{ full_name: string }>('invitacion-especialista', { action: 'consultar', token })).full_name;
+  }
+
+  /** Público (sin sesión): crea el usuario del especialista y gasta el enlace. */
+  async aceptarInvitacion(token: string, correo: string, clave: string): Promise<void> {
+    await this.funcion('invitacion-especialista', { action: 'aceptar', token, email: correo.trim(), password: clave });
   }
 
   // ---------- Horarios y bloqueos ----------
@@ -286,6 +325,37 @@ export class AgendaApi {
         await this.sb.rpc('admin_cambiar_estado_cita_pendiente', { p_id: id, p_estado_actual: estadoActual, p_estado: estado }),
       ) as RespuestaRpc,
     );
+  }
+
+  // ---------- Inicio del administrador (la función exige is_admin()) ----------
+  async inicio(): Promise<ResumenInicio> {
+    return this.datos(await this.sb.rpc('admin_inicio')) as ResumenInicio;
+  }
+
+  // ---------- Urgencias del bot (las funciones exigen is_admin()) ----------
+  async urgencias(f: FiltrosUrgencias): Promise<Urgencia[]> {
+    return this.datos(
+      await this.sb.rpc('admin_urgencias', { p_vista: f.vista, p_busqueda: f.busqueda.trim() || null, p_atencion: f.atencion || null }),
+    ) as Urgencia[];
+  }
+
+  async resumenUrgencias(): Promise<ResumenUrgencias> {
+    return this.datos(await this.sb.rpc('admin_urgencias_resumen')) as ResumenUrgencias;
+  }
+
+  async cambiarEstadoUrgencia(id: number, estadoActual: EstadoSolicitud, estado: EstadoSolicitud): Promise<void> {
+    this.verificar(
+      this.datos(
+        await this.sb.rpc('admin_cambiar_estado_urgencia', { p_id: id, p_estado_actual: estadoActual, p_estado: estado }),
+      ) as RespuestaRpc,
+    );
+  }
+
+  /** Agrega una nota de seguimiento (con fecha y autor, los pone la base de datos) y devuelve todas. */
+  async agregarNotaUrgencia(id: number, nota: string): Promise<string[]> {
+    const r = this.datos(await this.sb.rpc('admin_agregar_nota_urgencia', { p_id: id, p_nota: nota })) as RespuestaRpc & { notas: string[] };
+    this.verificar(r);
+    return r.notas;
   }
 
   // ---------- Especialista (solo sobre sus propias citas; lo exige la base de datos) ----------

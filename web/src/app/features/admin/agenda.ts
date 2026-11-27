@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
@@ -141,10 +141,13 @@ import { ReprogramarCita } from './reprogramar-cita';
     </div>
   `,
 })
-export class AgendaAdmin {
+export class AgendaAdmin implements OnInit {
   private readonly api = inject(AgendaApi);
   private readonly dialog = inject(MatDialog);
   private readonly aviso = inject(MatSnackBar);
+
+  /** Día (YYYY-MM-DD) con el que se llega desde «Inicio» (?dia=…). */
+  readonly diaPedido = input<string | undefined>(undefined, { alias: 'dia' });
 
   protected readonly valor = valorDe;
   protected readonly etiqueta = ETIQUETA_ESTADO;
@@ -167,7 +170,9 @@ export class AgendaAdmin {
   protected readonly especialidades = signal<Especialidad[]>([]);
   protected readonly catalogosListos = signal(false);
 
-  constructor() {
+  ngOnInit(): void {
+    const dia = this.diaPedido();
+    if (dia && /^\d{4}-\d{2}-\d{2}$/.test(dia)) this.filtros.update((f) => ({ ...f, desde: dia, hasta: dia }));
     void this.cargarCatalogos();
     void this.buscar();
   }

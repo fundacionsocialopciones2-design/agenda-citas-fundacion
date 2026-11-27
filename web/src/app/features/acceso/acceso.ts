@@ -1,12 +1,14 @@
 import { NgOptimizedImage } from '@angular/common';
 import { Component, input } from '@angular/core';
+import { SelectorTema } from '../../shared/selector-tema';
 
 /** Marco común de las pantallas de acceso: logo, título y contenido proyectado. */
 @Component({
   selector: 'app-acceso',
-  imports: [NgOptimizedImage],
+  imports: [NgOptimizedImage, SelectorTema],
   template: `
     <main class="acceso">
+      <app-selector-tema class="acceso-tema" />
       <section class="acceso-tarjeta" [attr.aria-labelledby]="'acceso-titulo'">
         <img ngSrc="logo-fundacion.jpg" width="96" height="96" alt="Logo de la Fundación Social Opciones" priority />
         <div class="acceso-cabecera">
@@ -21,16 +23,17 @@ import { Component, input } from '@angular/core';
   `,
   styles: `
     .acceso {
+      position: relative;
       min-height: 100vh;
       display: grid;
       place-items: center;
       padding: 24px 16px;
-      background: linear-gradient(180deg, #e4edf9 0, var(--app-fondo) 280px);
+      background: linear-gradient(180deg, var(--app-fondo-tinte) 0, var(--app-fondo) 280px);
     }
     .acceso-tarjeta {
       width: 100%;
       max-width: 420px;
-      background: #fff;
+      background: var(--app-superficie);
       border: 1px solid var(--app-borde);
       border-top: 4px solid var(--app-acento);
       border-radius: 16px;
@@ -38,6 +41,11 @@ import { Component, input } from '@angular/core';
       display: flex;
       flex-direction: column;
       gap: 16px;
+    }
+    .acceso-tema {
+      position: absolute;
+      top: 12px;
+      right: 12px;
     }
     img {
       align-self: center;

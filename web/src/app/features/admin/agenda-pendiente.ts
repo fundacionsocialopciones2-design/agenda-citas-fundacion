@@ -1,7 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
-import { firstValueFrom } from 'rxjs';
 import { AgendaApi } from '../../core/agenda.api';
 import { mensajeDeError } from '../../core/errores';
 import { CitaPendiente, ETIQUETA_SOLICITUD, EstadoSolicitud, FiltrosCitasPendientes, ServicioCita } from '../../core/models';
@@ -9,6 +7,7 @@ import { fechaBogota } from '../../core/tiempo';
 import { Estado } from '../../shared/estado';
 import { valorDe } from '../../shared/eventos-formulario';
 import { DetalleCitaPendiente } from './detalle-cita-pendiente';
+import { FilaLista, ListaDetalle } from './lista-detalle';
 
 const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busqueda: '' };
 
@@ -16,11 +15,11 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
  * Citas «abiertas» del chatbot: cuando un servicio de salud no tiene agenda en línea (p. ej. Fonoaudiología,
  * Optometría, Fisioterapia), la atención es a domicilio o no hay horarios para reprogramar, el bot pide a la
  * persona el día y la hora que prefiere y deja la solicitud para que la fundación la confirme. El administrador
- * cambia el estado desde el detalle. Datos: admin_servicios_cita / admin_citas_pendientes (exigen admin).
+ * cambia el estado desde el panel de detalle. Datos: admin_servicios_cita / admin_citas_pendientes (exigen admin).
  */
 @Component({
   selector: 'app-agenda-pendiente',
-  imports: [MatButtonModule, Estado],
+  imports: [MatButtonModule, Estado, ListaDetalle, DetalleCitaPendiente],
   template: `
     <div class="pagina">
       <div class="pagina-cabecera">
@@ -28,7 +27,7 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
           <h1>Agenda pendiente</h1>
           <p>
             Personas que pidieron una cita por WhatsApp eligiendo ellas mismas el día y la hora, porque el servicio no tiene agenda en línea.
-            Hay que contactarlas para confirmar la cita y, con «Ver», cambiar el estado de las que ya gestionaste.
+            Hay que contactarlas para confirmar la cita y cambiar el estado de las que ya gestionaste.
           </p>
         </div>
       </div>
@@ -59,8 +58,8 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
           </div>
         </div>
         <div class="acciones" style="margin-top: 12px">
-          <button mat-flat-button type="submit" [disabled]="estado() === 'cargando'">Buscar</button>
-          <button mat-button type="button" (click)="limpiar()">Limpiar filtros</button>
+          <button mat-flat-button type="submit" [disabled]="estado() === 'cargando' || bloqueado()">Buscar</button>
+          <button mat-button type="button" [disabled]="bloqueado()" (click)="limpiar()">Limpiar filtros</button>
         </div>
       </form>
 
@@ -77,47 +76,16 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
             @if (citas().length === 0) {
               <app-estado icono="pending_actions" titulo="No hay solicitudes de cita con estos filtros" mensaje="Cuando alguien pida por WhatsApp una cita de un servicio sin agenda en línea, aparecerá aquí." />
             } @else {
-              <table class="tabla">
-                <caption>
-                  {{ citas().length }} {{ citas().length === 1 ? 'solicitud' : 'solicitudes' }}{{ citas().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Solicitud</th>
-                    <th scope="col">Persona</th>
-                    <th scope="col">Servicio</th>
-                    <th scope="col">Día y hora que pidió</th>
-                    <th scope="col">Contacto</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col"><span class="solo-lectores">Acciones</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (c of citas(); track c.id) {
-                    <tr>
-                      <td data-etiqueta="Solicitud">{{ fecha(c.creado) }}</td>
-                      <td data-etiqueta="Persona">
-                        <strong>{{ c.nombre_completo }}</strong>
-                        @if (c.numero_documento) {
-                          <br /><small class="ayuda">{{ c.tipo_documento }} {{ c.numero_documento }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Servicio">
-                        {{ c.servicio }}
-                        @if (c.motivo) {
-                          <br /><small class="ayuda">{{ c.motivo }}</small>
-                        }
-                      </td>
-                      <td data-etiqueta="Día y hora que pidió">{{ c.preferencia || 'Sin indicar' }}</td>
-                      <td data-etiqueta="Contacto">{{ c.telefono_contacto || c.telefono }}</td>
-                      <td data-etiqueta="Estado"><span class="chip" [class]="'chip chip--' + c.estado">{{ etiqueta[c.estado] }}</span></td>
-                      <td data-etiqueta="Detalle">
-                        <button mat-stroked-button type="button" (click)="ver(c)" [attr.aria-label]="'Ver la solicitud de ' + c.nombre_completo">Ver</button>
-                      </td>
-                    </tr>
+              <p class="ayuda">
+                {{ citas().length }} {{ citas().length === 1 ? 'solicitud' : 'solicitudes' }}{{ citas().length === 500 ? ' (se muestran las 500 más recientes; afina los filtros)' : '' }}
+              </p>
+              <app-lista-detalle etiqueta="Solicitudes de cita" [filas]="filas()" [bloqueada]="bloqueado()" [(seleccion)]="seleccion">
+                <ng-template let-id>
+                  @if (porId().get(id); as c) {
+                    <app-detalle-cita-pendiente [cita]="c" (cambiada)="alCambiar()" />
                   }
-                </tbody>
-              </table>
+                </ng-template>
+              </app-lista-detalle>
             }
           }
         }
@@ -125,22 +93,37 @@ const SIN_FILTROS: FiltrosCitasPendientes = { servicioId: '', estado: '', busque
     </div>
   `,
 })
-export class AgendaPendiente {
+export class AgendaPendiente implements OnInit {
   private readonly api = inject(AgendaApi);
-  private readonly dialog = inject(MatDialog);
+  private readonly detalle = viewChild(DetalleCitaPendiente);
+
+  /** Filtro de estado con el que se llega desde «Inicio» (?estado=pendiente). */
+  readonly filtroEstado = input<string | undefined>(undefined, { alias: 'estado' });
 
   protected readonly valor = valorDe;
-  protected readonly fecha = fechaBogota;
-  protected readonly etiqueta = ETIQUETA_SOLICITUD;
   protected readonly estados = (Object.keys(ETIQUETA_SOLICITUD) as EstadoSolicitud[]).map((valor) => ({ valor, texto: ETIQUETA_SOLICITUD[valor] }));
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly mensajeError = signal('');
   protected readonly servicios = signal<ServicioCita[]>([]);
   protected readonly citas = signal<CitaPendiente[]>([]);
+  protected readonly seleccion = signal<number | null>(null);
   protected readonly filtros = signal<FiltrosCitasPendientes>(SIN_FILTROS);
-  /** Filtros con los que se hizo la última búsqueda (para el título de resultados). */
+  /** Filtros con los que se hizo la última búsqueda (para el título de resultados y las recargas). */
   private readonly aplicados = signal<FiltrosCitasPendientes>(SIN_FILTROS);
+
+  protected readonly bloqueado = computed(() => this.detalle()?.ocupado() ?? false);
+  protected readonly porId = computed(() => new Map(this.citas().map((c) => [c.id, c])));
+  protected readonly filas = computed<FilaLista[]>(() =>
+    this.citas().map((c) => ({
+      id: c.id,
+      titulo: c.nombre_completo,
+      fecha: fechaBogota(c.creado),
+      resumen: `${c.servicio} · Pide: ${c.preferencia || 'sin indicar'}`,
+      chip: { clave: c.estado, texto: ETIQUETA_SOLICITUD[c.estado] },
+      destacada: c.estado === 'pendiente',
+    })),
+  );
 
   protected readonly tituloResultados = computed(() => {
     const id = this.aplicados().servicioId;
@@ -148,7 +131,9 @@ export class AgendaPendiente {
     return `Solicitudes de cita de ${this.servicios().find((s) => s.servicio_id === id)?.titulo ?? 'el servicio elegido'}`;
   });
 
-  constructor() {
+  ngOnInit(): void {
+    const estado = this.filtroEstado();
+    if (estado && estado in ETIQUETA_SOLICITUD) this.cambiar('estado', estado);
     this.recargar();
   }
 
@@ -157,7 +142,7 @@ export class AgendaPendiente {
     void this.buscar();
   }
 
-  /** Opciones del filtro «Servicio». Si fallan, la tabla sigue funcionando con «Todos». */
+  /** Opciones del filtro «Servicio». Si fallan, la lista sigue funcionando con «Todos». */
   private async cargarServicios(): Promise<void> {
     try {
       this.servicios.set(await this.api.serviciosCita());
@@ -166,8 +151,10 @@ export class AgendaPendiente {
     }
   }
 
-  protected async buscar(f: FiltrosCitasPendientes = this.filtros()): Promise<void> {
-    this.estado.set('cargando');
+  /** `silencioso`: conserva lo que se ve mientras llega la respuesta (tras guardar un estado). */
+  protected async buscar(silencioso = false): Promise<void> {
+    const f = silencioso ? this.aplicados() : this.filtros();
+    if (!silencioso) this.estado.set('cargando');
     try {
       this.citas.set(await this.api.citasPendientes(f));
       this.aplicados.set(f);
@@ -178,6 +165,10 @@ export class AgendaPendiente {
     }
   }
 
+  protected alCambiar(): void {
+    void this.buscar(true);
+  }
+
   protected cambiar<K extends keyof FiltrosCitasPendientes>(campo: K, valor: string): void {
     this.filtros.update((f) => ({ ...f, [campo]: valor }));
   }
@@ -185,11 +176,5 @@ export class AgendaPendiente {
   protected limpiar(): void {
     this.filtros.set(SIN_FILTROS);
     void this.buscar();
-  }
-
-  /** Si el estado cambió en el detalle, se recarga la lista con los mismos filtros que se estaban viendo. */
-  protected async ver(c: CitaPendiente): Promise<void> {
-    const resultado = await firstValueFrom(this.dialog.open(DetalleCitaPendiente, { data: c, width: '520px' }).afterClosed());
-    if (resultado === 'actualizada') await this.buscar(this.aplicados());
   }
 }

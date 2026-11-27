@@ -81,15 +81,15 @@ const DIAS_VENTANA = 14;
       padding: 0 16px;
       border: 1px solid var(--mat-sys-outline);
       border-radius: 999px;
-      background: #fff;
+      background: var(--app-superficie);
     }
     .cupo input:checked + span {
-      background: #1f5aa6;
-      border-color: #1f5aa6;
-      color: #fff;
+      background: var(--app-primario);
+      border-color: var(--app-primario);
+      color: var(--app-primario-texto);
     }
     .cupo input:focus-visible + span {
-      outline: 3px solid #1f5aa6;
+      outline: 3px solid var(--app-primario);
       outline-offset: 2px;
     }
   `,

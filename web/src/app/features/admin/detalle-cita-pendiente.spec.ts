@@ -1,5 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { describe, expect, it, vi } from 'vitest';
 import { AgendaApi } from '../../core/agenda.api';
@@ -31,17 +30,17 @@ const CITA: CitaPendiente = {
 
 async function renderizar(cambiar = vi.fn().mockResolvedValue(undefined)) {
   const api = { cambiarEstadoCitaPendiente: cambiar };
-  const ref = { close: vi.fn(), disableClose: false };
   const aviso = { open: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
-      { provide: MAT_DIALOG_DATA, useValue: CITA },
-      { provide: MatDialogRef, useValue: ref },
       { provide: AgendaApi, useValue: api },
       { provide: MatSnackBar, useValue: aviso },
     ],
   });
   const fixture = TestBed.createComponent(DetalleCitaPendiente);
+  fixture.componentRef.setInput('cita', CITA);
+  const cambiada = vi.fn();
+  fixture.componentInstance.cambiada.subscribe(cambiada);
   await fixture.whenStable();
   fixture.detectChanges();
   const html = fixture.nativeElement as HTMLElement;
@@ -52,28 +51,29 @@ async function renderizar(cambiar = vi.fn().mockResolvedValue(undefined)) {
     select().dispatchEvent(new Event('change'));
     fixture.detectChanges();
   };
-  return { html, api, ref, aviso, fixture, select, guardar, elegir };
+  return { html, api, cambiada, aviso, fixture, select, guardar, elegir };
 }
 
 describe('DetalleCitaPendiente', () => {
-  it('muestra el estado actual y no deja guardar sin cambios', async () => {
-    const { select, guardar } = await renderizar();
+  it('muestra lo que pidió, el estado actual y no deja guardar sin cambios', async () => {
+    const { html, select, guardar } = await renderizar();
+    expect(html.textContent).toContain('martes en la mañana');
     expect(select().value).toBe('pendiente');
     expect(Array.from(select().options).map((o) => o.textContent?.trim())).toEqual(['Pendiente', 'Contactado', 'Agendada', 'Atendida', 'Cancelada']);
     expect(guardar().disabled).toBe(true);
   });
 
-  it('guarda el estado nuevo, avisa y cierra para recargar la lista', async () => {
-    const { api, ref, aviso, guardar, elegir } = await renderizar();
+  it('guarda el estado nuevo, avisa y pide volver a consultar', async () => {
+    const { api, cambiada, aviso, guardar, elegir } = await renderizar();
     elegir('contactado');
     guardar().click();
-    await vi.waitFor(() => expect(ref.close).toHaveBeenCalledWith('actualizada'));
+    await vi.waitFor(() => expect(cambiada).toHaveBeenCalled());
     expect(api.cambiarEstadoCitaPendiente).toHaveBeenCalledWith(8, 'pendiente', 'contactado');
     expect(aviso.open).toHaveBeenCalledWith('Estado actualizado a «Contactado».', 'Cerrar', expect.anything());
   });
 
-  it('si falla, muestra un error sin texto crudo y deja el diálogo abierto', async () => {
-    const { html, ref, guardar, elegir, fixture } = await renderizar(vi.fn().mockRejectedValue(new Error('sin red')));
+  it('si falla, muestra un error sin texto crudo', async () => {
+    const { html, cambiada, guardar, elegir, fixture } = await renderizar(vi.fn().mockRejectedValue(new Error('sin red')));
     elegir('atendida');
     guardar().click();
     await vi.waitFor(() => {
@@ -81,16 +81,15 @@ describe('DetalleCitaPendiente', () => {
       expect(html.querySelector('[role="alert"]')).not.toBeNull();
     });
     expect(html.textContent).not.toContain('sin red');
-    expect(ref.close).not.toHaveBeenCalled();
-    expect(ref.disableClose).toBe(false);
+    expect(cambiada).not.toHaveBeenCalled();
   });
 
-  it('si el estado ya había cambiado, avisa y cierra para recargar', async () => {
+  it('si el estado ya había cambiado, avisa y pide volver a consultar', async () => {
     const error = new ErrorApi('status_changed', MENSAJES_AGENDA['status_changed']);
-    const { ref, aviso, guardar, elegir } = await renderizar(vi.fn().mockRejectedValue(error));
+    const { cambiada, aviso, guardar, elegir } = await renderizar(vi.fn().mockRejectedValue(error));
     elegir('contactado');
     guardar().click();
-    await vi.waitFor(() => expect(ref.close).toHaveBeenCalledWith('actualizada'));
+    await vi.waitFor(() => expect(cambiada).toHaveBeenCalled());
     expect(aviso.open).toHaveBeenCalledWith(MENSAJES_AGENDA['status_changed'], 'Cerrar', expect.anything());
   });
 });
